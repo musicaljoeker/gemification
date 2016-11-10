@@ -7,8 +7,7 @@ var mysql = require('mysql');
 var db = mysql.createConnection({
   host      : 'galerafloat.mio.uwosh.edu',
   user      : 'kerkhofj',
-  password  : 'Oshkosh123!',
-  database  : 'Gemification'
+  password  : 'Oshkosh123!'
 });
 
 // Server Definitions
