@@ -42,7 +42,7 @@ app.post('/gem', function (req, res, next) {
 });
 
 // This is a test funciton to the MySQL database
-app.post('/show-tables', function (req, res, next) {
+app.get('/show-tables', function (req, res, next) {
   // Setting up the database connection
   db.connect(function(err){
     if (!err) {
