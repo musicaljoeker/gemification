@@ -1,15 +1,24 @@
 // Requirements
+var fs = require('fs');
+var http = require('http');
+var https = require('https');
 var express = require('express');
 var bodyParser = require('body-parser');
 var mysql = require('mysql');
 
+// SSL Certificate Configuration
+var httpsOptions = {
+  key   :  fs.readFileSync('ssl/StarMIO.key', 'utf8'),
+  cert  :  fs.readFileSync('ssl/StarMIO-cert.pem', 'utf8'),
+  ca    :  fs.readFileSync('ssl/StarMIO-chain.pem', 'utf8')
+}
+
+// Server Definitions
+var app = express();
+var port = process.env.PORT || 443;
+var server = https.createServer(httpsOptions, app);
+
 // Database Configuration
-// var db = mysql.createConnection({
-//   host      : 'galerafloat.mio.uwosh.edu',
-//   user      : 'gemification',
-//   password  : 'car owner drivers seat',
-//   database  : 'Gemification'
-// });
 var pool = mysql.createPool({
     connectionLimit : 100, //important
     host      : 'galerafloat.mio.uwosh.edu',
@@ -19,10 +28,6 @@ var pool = mysql.createPool({
     debug     :  false
 });
 
-// Server Definitions
-var app = express();
-var port = process.env.PORT || 80;
-
 // Body Parser Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -30,9 +35,12 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.get('/', function (req, res) { res.status(200).send('Hello world!'); });
 
 // Server Listners
-app.listen(port, function () {
+server.listen(port, function(){
   console.log('Listening on port ' + port);
 });
+// app.listen(port, function () {
+//   console.log('Listening on port ' + port);
+// });
 
 // Gemification Posts
 app.post('/gem', function (req, res, next) {
@@ -50,7 +58,7 @@ app.post('/gem', function (req, res, next) {
   }
 });
 
-// This is a test pool connection to the MySQL database
+// This is a test pool connection function to the MySQL database
 function handle_database(req,res) {
     pool.getConnection(function(err,connection){
       if (err) {
@@ -70,32 +78,8 @@ function handle_database(req,res) {
       });
   });
 }
+
+// Handling the GET request
 app.get('/show-tables', function(req, res){
   handle_database(req, res);
 });
-
-
-// This is a test funciton to the MySQL database
-// app.get('/show-tables', function (req, res, next) {
-//   // Setting up the database connection
-//   db.connect(function(err){
-//     if (!err) {
-//       console.log("Database is connected");
-//     } else {
-//       // Throw an error
-//       console.log("Error in connecting to database: " + err);
-//     }
-//   });
-//
-//   // Test query to the database
-//   db.query('SHOW TABLES', function(err, rows, fields){
-//     db.end();
-//     if (!err) {
-//       // Do some stuff
-//       res.status(200).send("These are the tables:\n" + rows);
-//     } else {
-//       // Throw an error
-//       console.log("Error in performing tables query");
-//     }
-//   });
-// });
