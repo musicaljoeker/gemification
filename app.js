@@ -3,11 +3,11 @@ var express = require('express');
 var bodyParser = require('body-parser');
 var mysql = require('mysql');
 
-// Database Connection
+// Database Configuration
 var db = mysql.createConnection({
   host      : 'galerafloat.mio.uwosh.edu',
-  user      : 'kerkhofj',
-  password  : 'Oshkosh123!',
+  user      : 'gemification',
+  password  : 'car owner drivers seat',
   database  : 'Gemification'
 });
 
@@ -21,6 +21,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Test Route
 app.get('/', function (req, res) { res.status(200).send('Hello world!'); });
 
+// Server Listners
 app.listen(port, function () {
   console.log('Listening on port ' + port);
 });
