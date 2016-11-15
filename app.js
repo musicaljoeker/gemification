@@ -31,10 +31,7 @@ var pool = mysql.createPool({
 // Body Parser Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Test Route
-app.get('/', function (req, res) { res.status(200).send('Hello world!'); });
-
-// Server Listners
+// Server Listner
 server.listen(port, function(){
   console.log('Listening on port ' + port);
 });
@@ -64,19 +61,19 @@ function handle_database(req,res) {
       }
       console.log('connected as id ' + connection.threadId);
       connection.query("SHOW TABLES",function(err,rows){
-          connection.release();
-          if(!err) {
-              res.json(rows);
-          }
+        connection.release();
+        if(!err) {
+          res.json(rows);
+        }
       });
       connection.on('error', function(err) {
-            res.json({"code" : 100, "status" : "Error in connection database"});
-            return;
+        res.json({"code" : 100, "status" : "Error in connection database"});
+        return;
       });
   });
 }
 
 // Handling the GET request
-app.get('/show-tables', function(req, res){
+app.post('/show-tables', function(req, res){
   handle_database(req, res);
 });
