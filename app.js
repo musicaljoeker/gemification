@@ -4,11 +4,19 @@ var bodyParser = require('body-parser');
 var mysql = require('mysql');
 
 // Database Configuration
-var db = mysql.createConnection({
-  host      : 'galerafloat.mio.uwosh.edu',
-  user      : 'gemification',
-  password  : 'car owner drivers seat',
-  database  : 'Gemification'
+// var db = mysql.createConnection({
+//   host      : 'galerafloat.mio.uwosh.edu',
+//   user      : 'gemification',
+//   password  : 'car owner drivers seat',
+//   database  : 'Gemification'
+// });
+var pool = mysql.createPool({
+    connectionLimit : 100, //important
+    host      : 'galerafloat.mio.uwosh.edu',
+    user      : 'gemification',
+    password  : 'car owner drivers seat',
+    database  : 'Gemification',
+    debug     :  false
 });
 
 // Server Definitions
@@ -42,27 +50,52 @@ app.post('/gem', function (req, res, next) {
   }
 });
 
-// This is a test funciton to the MySQL database
-app.get('/show-tables', function (req, res, next) {
-  // Setting up the database connection
-  db.connect(function(err){
-    if (!err) {
-      console.log("Database is connected");
-    } else {
-      // Throw an error
-      console.log("Error in connecting to database: " + err);
-    }
+// This is a test pool connection to the MySQL database
+function handle_database(req,res) {
+    pool.getConnection(function(err,connection){
+      if (err) {
+        res.json({"code" : 100, "status" : "Error in connection database"});
+        return;
+      }
+      console.log('connected as id ' + connection.threadId);
+      connection.query("SHOW TABLES",function(err,rows){
+          connection.release();
+          if(!err) {
+              res.json(rows);
+          }
+      });
+      connection.on('error', function(err) {
+            res.json({"code" : 100, "status" : "Error in connection database"});
+            return;
+      });
   });
-
-  // Test query to the database
-  db.query('SHOW TABLES', function(err, rows, fields){
-    if (!err) {
-      // Do some stuff
-      res.status(200).send("These are the tables:\n" + rows);
-    } else {
-      // Throw an error
-      console.log("Error in performing tables query");
-    }
-  });
-  db.end();
+}
+app.get('/show-tables', function(req, res){
+  handle_database(req, res);
 });
+
+
+// This is a test funciton to the MySQL database
+// app.get('/show-tables', function (req, res, next) {
+//   // Setting up the database connection
+//   db.connect(function(err){
+//     if (!err) {
+//       console.log("Database is connected");
+//     } else {
+//       // Throw an error
+//       console.log("Error in connecting to database: " + err);
+//     }
+//   });
+//
+//   // Test query to the database
+//   db.query('SHOW TABLES', function(err, rows, fields){
+//     db.end();
+//     if (!err) {
+//       // Do some stuff
+//       res.status(200).send("These are the tables:\n" + rows);
+//     } else {
+//       // Throw an error
+//       console.log("Error in performing tables query");
+//     }
+//   });
+// });
