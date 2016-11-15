@@ -56,7 +56,6 @@ app.get('/show-tables', function (req, res, next) {
 
   // Test query to the database
   db.query('SHOW TABLES', function(err, rows, fields){
-    db.end();
     if (!err) {
       // Do some stuff
       res.status(200).send("These are the tables:\n" + rows);
@@ -65,4 +64,5 @@ app.get('/show-tables', function (req, res, next) {
       console.log("Error in performing tables query");
     }
   });
+  db.end();
 });
