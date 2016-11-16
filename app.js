@@ -32,7 +32,7 @@ var pool = mysql.createPool({
 // Gemification Slackbot Configuration
 var controller = botkit.slackbot();
 var bot = controller.spawn({
-  token: "2m0qLeTSddvFfZRScbVZcPFe"
+  token: "a3f0961b70c2ebec94c83b7f507de574"
 })
 bot.startRTM(function(err,bot,payload) {
   if (err) {
