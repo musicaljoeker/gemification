@@ -31,7 +31,9 @@ var pool = mysql.createPool({
 
 // Gemification Slackbot Configuration
 var controller = botkit.slackbot();
-var bot = controller.spawn({});
+var bot = controller.spawn({
+  token: a3f0961b70c2ebec94c83b7f507de574
+})
 bot.startRTM(function(err,bot,payload) {
   if (err) {
     throw new Error('Could not connect to Slack');
