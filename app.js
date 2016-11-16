@@ -5,6 +5,7 @@ var https = require('https');
 var express = require('express');
 var bodyParser = require('body-parser');
 var mysql = require('mysql');
+var botkit = require('botkit');
 
 // SSL Certificate Configuration
 var httpsOptions = {
@@ -28,13 +29,24 @@ var pool = mysql.createPool({
     debug     :  false
 });
 
+// Gemification Slackbot Configuration
+var controller = botkit.slackbot();
+var bot = controller.spawn({
+  token: 2m0qLeTSddvFfZRScbVZcPFe
+})
+bot.startRTM(function(err,bot,payload) {
+  if (err) {
+    throw new Error('Could not connect to Slack');
+  }
+
+  // close the RTM for the sake of it in 5 seconds
+  setTimeout(function() {
+      bot.closeRTM();
+  }, 5000);
+});
+
 // Body Parser Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
-
-// Server Listner
-server.listen(port, function(){
-  console.log('Listening on port ' + port);
-});
 
 // Gemification Posts
 app.post('/gem', function (req, res, next) {
@@ -76,4 +88,9 @@ function handle_database(req,res) {
 // Handling the GET request
 app.post('/show-tables', function(req, res){
   handle_database(req, res);
+});
+
+// Server Listner
+server.listen(port, function(){
+  console.log('Listening on port ' + port);
 });
