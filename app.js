@@ -105,6 +105,10 @@ controller.hears('hello','direct_message',function(bot,message) {
   bot.reply(message,'Hello!');
 });
 
+controller.hears(':gem:','direct_message',function(bot,message) {
+  bot.reply(message,'You have typed a gem!');
+});
+
 controller.hears('^stop','direct_message',function(bot,message) {
   bot.reply(message,'Goodbye');
   bot.rtm.close();
