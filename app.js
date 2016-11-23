@@ -105,7 +105,7 @@ controller.hears('hello','direct_message',function(bot,message) {
   bot.reply(message,'Hello!');
 });
 
-controller.hears(':gem:','mention',function(bot,message) {
+controller.hears(':gem:','ambient',function(bot,message) {
   bot.reply(message,'You have typed a gem!');
 });
 
