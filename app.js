@@ -123,6 +123,7 @@ controller.on('rtm_close',function(bot) {
 
 controller.hears(':gem:','ambient',function(bot,message) {
   bot.reply(message,'You have typed a gem!');
+  bot.reply(message, 'This is what you typed: ' + message.text);
   console.log("This is message: " + JSON.stringify(message));
 });
 
