@@ -122,7 +122,9 @@ controller.on('rtm_close',function(bot) {
 // });
 
 controller.hears(':gem:','ambient',function(bot,message) {
-  bot.reply(message, 'Hello, <@' + message.user + '>! You have typed a gem!');
+  bot.reply(message, 'Hello, <@' + message.user + '>! You have typed a gem!\n' +
+      'And this is what you typed: ' + message.text
+  );
   // bot.reply(message, 'This is what you typed: ' + message.text);
 });
 
