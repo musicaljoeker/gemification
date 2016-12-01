@@ -123,7 +123,7 @@ controller.on('rtm_close',function(bot) {
 
 controller.hears(':gem:','ambient',function(bot,message) {
   var gemGiver = '<@' + message.user + '>';
-  var gemReveiver = message.text.match("/\B@[a-z0-9_-.]+/gi");
+  var gemReveiver = message.text.match(/\B@[a-z0-9_-.]+/gi);
   var reason;
 
   bot.reply(message, 'Hello, ' + gemGiver + '! You have typed a gem!\n' +
