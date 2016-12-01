@@ -122,8 +122,12 @@ controller.on('rtm_close',function(bot) {
 // });
 
 controller.hears(':gem:','ambient',function(bot,message) {
-  bot.reply(message, 'Hello, <@' + message.user + '>! You have typed a gem!\n' +
-      'And this is what you typed: ' + message.text
+  var gemGiver = '<@' + message.user + '>';
+  var gemReveiver = message.text.match("/\B@[a-z0-9_-.]+/gi");
+  var reason;
+
+  bot.reply(message, 'Hello, ' + gemGiver + '! You have typed a gem!\n' +
+      'And this is who it\'s going to: ' + gemReveiver
   );
   // bot.reply(message, 'This is what you typed: ' + message.text);
 });
