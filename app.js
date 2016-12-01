@@ -127,7 +127,7 @@ controller.hears(':gem:','ambient',function(bot,message) {
   var reason;
 
   bot.reply(message, 'Hello, ' + gemGiver + '! You have typed a gem!\n' +
-      'And this is who it\'s going to: ' + gemReveiver
+      'And this is who it\'s going to: <' + gemReveiver
   );
   // bot.reply(message, 'This is what you typed: ' + message.text);
 });
