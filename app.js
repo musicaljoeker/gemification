@@ -130,6 +130,10 @@ controller.hears(':gem:','ambient',function(bot,message) {
     reason = messageText.substr(messageText.indexOf('for ') + 4);
   }
 
+  controller.storage.users.all(function(err, all_user_data) {
+    bot.reply(message, 'All user data: ' + JSON.stringify(all_user_data));
+  });
+
   if (messageText.match(/@([^\s]+)/g) == null || typeof reason === "undefined"){
     bot.reply(message, 'Sorry, ' + gemGiver + '. There was an error in your gem statement...\n' +
       'Please type your gem statement like this:\n' +
