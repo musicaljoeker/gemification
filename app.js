@@ -125,7 +125,7 @@ controller.hears(':gem:','ambient',function(bot,message) {
   var messageText = message.text;
   var gemGiver = '<@' + message.user + '>';
   var gemReveiver = '<' + messageText.match(/@([^\s]+)/g);
-  var reason = messageText.substr(messageText.indexOf("for ") + 1);
+  var reason = messageText.substr(messageText.indexOf("for ") + 4);
 
   if (gemGiver == '' || gemReveiver == '' || reason == ''){
     bot.reply(message, 'Sorry, there was an error in your gem statement...\n' +
