@@ -124,7 +124,7 @@ controller.on('rtm_close',function(bot) {
 controller.hears(':gem:','ambient',function(bot,message) {
   var gemGiver = '<@' + message.user + '>';
   var gemReveiver = '<' + message.text.match(/@([^\s]+)/g);
-  var reason = message.text.match(/for(.*)/)[1];
+  var reason = message.text.match(/for (.*)/)[1];
 
   bot.reply(message, 'Hello, ' + gemGiver + '! You have typed a gem!\n' +
       'This is who it\'s going to: ' + gemReveiver + '\n' +
