@@ -124,12 +124,12 @@ controller.on('rtm_close',function(bot) {
 controller.hears(':gem:','ambient',function(bot,message) {
   var gemGiver = '<@' + message.user + '>';
   var gemReveiver = '<' + message.text.match(/@([^\s]+)/g);
-  var reason;
+  var reason = message.text.match(/for(.*)/)[1];
 
   bot.reply(message, 'Hello, ' + gemGiver + '! You have typed a gem!\n' +
-      'And this is who it\'s going to: ' + gemReveiver
+      'This is who it\'s going to: ' + gemReveiver + '\n' +
+      'And this is why you are giving the gem: ' + reason
   );
-  // bot.reply(message, 'This is what you typed: ' + message.text);
 });
 
 controller.storage.teams.all(function(err,teams) {
