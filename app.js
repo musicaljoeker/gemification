@@ -124,10 +124,7 @@ controller.on('rtm_close',function(bot) {
 controller.hears(':gem:','ambient',function(bot,message) {
   var gemGiver = '<@' + message.user + '>';
   var gemReveiver = '<' + message.text.match(/@([^\s]+)/g);
-  var reason = '';
-  if(message.text.match(/for (.*)/)[1] != null) {
-    reason = message.text.match(/for (.*)/)[1];
-  }
+  var reason = message.text.substr(str.indexOf("for ") + 1);
 
   if (gemGiver == '' || gemReveiver == '' || reason == ''){
     bot.reply(message, 'Sorry, there was an error in your gem statement...\n' +
