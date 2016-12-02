@@ -126,10 +126,17 @@ controller.hears(':gem:','ambient',function(bot,message) {
   var gemReveiver = '<' + message.text.match(/@([^\s]+)/g);
   var reason = message.text.match(/for (.*)/)[1];
 
-  bot.reply(message, 'Hello, ' + gemGiver + '! You have typed a gem!\n' +
-      'This is who it\'s going to: ' + gemReveiver + '\n' +
-      'And this is why you are giving the gem: ' + reason
-  );
+  if (gemGiver == '' || gemReveiver == '' || reason == ''){
+    bot.reply(message, 'Sorry, there was an error in your gem statement...\n' +
+      'Please type your gem statement like this:\n' +
+      ':gem: @[username] for [reason]'
+    );
+  } else{
+    bot.reply(message, 'Hello, ' + gemGiver + '! You have typed a gem!\n' +
+        'This is who it\'s going to: ' + gemReveiver + '\n' +
+        'And this is why you are giving the gem: ' + reason
+    );
+  }
 });
 
 controller.storage.teams.all(function(err,teams) {
