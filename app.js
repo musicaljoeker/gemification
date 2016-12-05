@@ -101,46 +101,35 @@ controller.on('rtm_close',function(bot) {
   // you may want to attempt to re-open
 });
 
-// controller.hears('hello','direct_message',function(bot,message) {
-//   bot.reply(message,'Hello!');
-// });
+// Supply the channel ID and this will return a list of members in JSON
+function getMembersInChannel(channel){
+  bot.api.channels.info(channel, function(err, response) {
 
-// controller.hears('^stop','direct_message',function(bot,message) {
-//   bot.reply(message,'Goodbye');
-//   bot.rtm.close();
-// });
-
-// controller.on(['direct_message','mention','direct_mention'],function(bot,message) {
-//   bot.api.reactions.add({
-//     timestamp: message.ts,
-//     channel: message.channel,
-//     name: 'robot_face',
-//   },function(err) {
-//     if (err) { console.log(err) }
-//     bot.reply(message,'I heard you loud and clear boss.');
-//   });
-// });
+  });
+}
 
 controller.hears(':gem:','ambient',function(bot,message) {
-  var messageText = message.text;
-  var gemGiver = '<@' + message.user + '>';
-  var gemReveiver = '<' + messageText.match(/@([^\s]+)/g);
-  var reason;
-  if(messageText.includes('for ')){
-    reason = messageText.substr(messageText.indexOf('for ') + 4);
-  }
+  bot.reply(message, "Message data: " + JSON.stringify(message));
 
-  if (messageText.match(/@([^\s]+)/g) == null || typeof reason === "undefined"){
-    bot.reply(message, 'Sorry, ' + gemGiver + '. There was an error in your gem statement...\n' +
-      'Please type your gem statement like this:\n' +
-      ':gem: @[username] for [reason]'
-    );
-  } else{
-    bot.reply(message, 'Hello, ' + gemGiver + '! You have typed a gem!\n' +
-        'This is who it\'s going to: ' + gemReveiver + '\n' +
-        'And this is why you are giving the gem: ' + reason
-    );
-  }
+  // var messageText = message.text;
+  // var gemGiver = '<@' + message.user + '>';
+  // var gemReveiver = '<' + messageText.match(/@([^\s]+)/g);
+  // var reason;
+  // if(messageText.includes('for ')){
+  //   reason = messageText.substr(messageText.indexOf('for ') + 4);
+  // }
+  //
+  // if (messageText.match(/@([^\s]+)/g) == null || typeof reason === "undefined"){
+  //   bot.reply(message, 'Sorry, ' + gemGiver + '. There was an error in your gem statement...\n' +
+  //     'Please type your gem statement like this:\n' +
+  //     ':gem: @[username] for [reason]'
+  //   );
+  // } else{
+  //   bot.reply(message, 'Hello, ' + gemGiver + '! You have typed a gem!\n' +
+  //       'This is who it\'s going to: ' + gemReveiver + '\n' +
+  //       'And this is why you are giving the gem: ' + reason
+  //   );
+  // }
 });
 
 controller.storage.teams.all(function(err,teams) {
