@@ -102,7 +102,7 @@ controller.on('rtm_close',function(bot) {
 });
 
 // Supply the channel ID and this will return a list of members in JSON
-function getMembersInChannel(channel){
+function getMembersInChannel(bot, channel){
   bot.reply(message, "Channel info: " + JSON.stringify(bot.api.channels.info(channel, function(err, response) {})));
 }
 
@@ -113,7 +113,7 @@ controller.hears(':gem:','ambient',function(bot,message) {
   var channelID = message.channel;
   var membersInChannel;
   // testing the function. Echoes out all the bot response
-  getMembersInChannel();
+  getMembersInChannel(bot, channelID);
 
   var gemGiver = '<@' + message.user + '>';
   var gemReveiver = '<' + messageText.match(/@([^\s]+)/g);
