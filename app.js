@@ -104,7 +104,8 @@ controller.on('rtm_close',function(bot) {
 // Supply the channel ID and this will return a list of members in JSON
 function getMembersInChannel(bot, message, channel){
   bot.api.channels.info(channel, function(err, response) {
-    bot.reply(message, "This is the response: " + JSON.stringify(response));
+    bot.reply(message, "ChannelID: " + channel + "\n" +
+    "This is the response: " + JSON.stringify(response));
   });
 }
 
@@ -124,17 +125,17 @@ controller.hears(':gem:','ambient',function(bot,message) {
     reason = messageText.substr(messageText.indexOf('for ') + 4);
   }
 
-  if (messageText.match(/@([^\s]+)/g) == null || typeof reason === "undefined"){
-    bot.reply(message, 'Sorry, ' + gemGiver + '. There was an error in your gem statement...\n' +
-      'Please type your gem statement like this:\n' +
-      ':gem: @[username] for [reason]'
-    );
-  } else{
-    bot.reply(message, 'Hello, ' + gemGiver + '! You have typed a gem!\n' +
-        'This is who it\'s going to: ' + gemReveiver + '\n' +
-        'And this is why you are giving the gem: ' + reason
-    );
-  }
+  // if (messageText.match(/@([^\s]+)/g) == null || typeof reason === "undefined"){
+  //   bot.reply(message, 'Sorry, ' + gemGiver + '. There was an error in your gem statement...\n' +
+  //     'Please type your gem statement like this:\n' +
+  //     ':gem: @[username] for [reason]'
+  //   );
+  // } else{
+  //   bot.reply(message, 'Hello, ' + gemGiver + '! You have typed a gem!\n' +
+  //       'This is who it\'s going to: ' + gemReveiver + '\n' +
+  //       'And this is why you are giving the gem: ' + reason
+  //   );
+  // }
 });
 
 controller.storage.teams.all(function(err,teams) {
