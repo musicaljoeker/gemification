@@ -103,33 +103,37 @@ controller.on('rtm_close',function(bot) {
 
 // Supply the channel ID and this will return a list of members in JSON
 function getMembersInChannel(channel){
-  bot.api.channels.info(channel, function(err, response) {
-
-  });
+  bot.reply(message, "Channel info: " + JSON.stringify(bot.api.channels.info(channel, function(err, response) {})));
 }
 
+// Message data contains the following content by this association
+// type, channel, user, text, ts, team, event, match
 controller.hears(':gem:','ambient',function(bot,message) {
-  bot.reply(message, "Message data: " + JSON.stringify(message));
+  var messageText = message.text;
+  var channelID = message.channel;
+  var membersInChannel;
+  // testing the function. Echoes out all the bot response
+  getMembersInChannel();
 
-  // var messageText = message.text;
-  // var gemGiver = '<@' + message.user + '>';
-  // var gemReveiver = '<' + messageText.match(/@([^\s]+)/g);
-  // var reason;
-  // if(messageText.includes('for ')){
-  //   reason = messageText.substr(messageText.indexOf('for ') + 4);
-  // }
-  //
-  // if (messageText.match(/@([^\s]+)/g) == null || typeof reason === "undefined"){
-  //   bot.reply(message, 'Sorry, ' + gemGiver + '. There was an error in your gem statement...\n' +
-  //     'Please type your gem statement like this:\n' +
-  //     ':gem: @[username] for [reason]'
-  //   );
-  // } else{
-  //   bot.reply(message, 'Hello, ' + gemGiver + '! You have typed a gem!\n' +
-  //       'This is who it\'s going to: ' + gemReveiver + '\n' +
-  //       'And this is why you are giving the gem: ' + reason
-  //   );
-  // }
+  var gemGiver = '<@' + message.user + '>';
+  var gemReveiver = '<' + messageText.match(/@([^\s]+)/g);
+  var reason;
+
+  if(messageText.includes('for ')){
+    reason = messageText.substr(messageText.indexOf('for ') + 4);
+  }
+
+  if (messageText.match(/@([^\s]+)/g) == null || typeof reason === "undefined"){
+    bot.reply(message, 'Sorry, ' + gemGiver + '. There was an error in your gem statement...\n' +
+      'Please type your gem statement like this:\n' +
+      ':gem: @[username] for [reason]'
+    );
+  } else{
+    bot.reply(message, 'Hello, ' + gemGiver + '! You have typed a gem!\n' +
+        'This is who it\'s going to: ' + gemReveiver + '\n' +
+        'And this is why you are giving the gem: ' + reason
+    );
+  }
 });
 
 controller.storage.teams.all(function(err,teams) {
