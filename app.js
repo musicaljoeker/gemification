@@ -103,7 +103,8 @@ controller.on('rtm_close',function(bot) {
 
 // Supply the channel ID and this will return a list of members in JSON
 function getMembersInChannel(bot, message, channel){
-  bot.reply(message, "Channel info: " + JSON.stringify(bot.api.channels.info(channel, function(err, response) {})));
+  bot.reply(message, "Channel: " + channel +
+  "Channel info: " + JSON.stringify(bot.api.channels.info(channel, function(err, response) {})));
 }
 
 // Message data contains the following content by this association
@@ -118,7 +119,6 @@ controller.hears(':gem:','ambient',function(bot,message) {
   var gemGiver = '<@' + message.user + '>';
   var gemReveiver = '<' + messageText.match(/@([^\s]+)/g);
   var reason;
-
   if(messageText.includes('for ')){
     reason = messageText.substr(messageText.indexOf('for ') + 4);
   }
