@@ -105,7 +105,7 @@ controller.on('rtm_close',function(bot) {
 function getMembersInChannel(bot, message, channel){
   bot.api.channels.info(channel, function(err, response) {
     bot.reply(message, "This is the response: " + JSON.stringify(response));
-  })));
+  });
 }
 
 // Message data contains the following content by this association
