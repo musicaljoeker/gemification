@@ -126,7 +126,7 @@ controller.hears(':gem:','ambient',function(bot,message) {
     // in the Slack app)
     var gemReceiver = '<@' + trimmedGemReceiverRaw + '>';
     // Instantiating the reason variable
-    var reason;
+    var reason = '';
     // Checking if the user type a reason after the keyword 'for ', if not, do nothing
     if(messageText.includes('for ')){
       reason = messageText.substr(messageText.indexOf('for ') + 4);
