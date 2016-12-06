@@ -133,8 +133,8 @@ controller.hears(':gem:','ambient',function(bot,message) {
     }
 
     // This if-statement checks for a variety of conditions
-    // First, it checks to see if the reason is undefinied -- it requires a reason for storage to the
-    // database.
+    // First, it checks to see if the reason is an empty string -- it requires a reason for
+    // storage to the database.
     // Second, it checks to see if the member the user entered to give the gem TO is a valid username
     // in the channel.
     // Third, it checks if the :gem: is typed after the word 'for' meaning the user typed their
@@ -145,7 +145,7 @@ controller.hears(':gem:','ambient',function(bot,message) {
     // can proceed. Valid gem statements are as following...
     // :gem: [@username] for [reason] -- this is the suggested statement syntax
     // [@username] :gem: for [reason]
-    var isReasonUndefined = (typeof reason === 'undefined');
+    var isReasonUndefined = (typeof reason === '');
     var isGemReceiverValid = !(membersInChannel.indexOf(trimmedGemReceiverRaw) > -1);
     var isGemInReason = (reason.indexOf(':gem:') > -1);
     var isGemReceiverInReason = (reason.indexOf(trimmedGemReceiverRaw) > -1);
