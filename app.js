@@ -145,18 +145,18 @@ controller.hears(':gem:','ambient',function(bot,message) {
     // can proceed. Valid gem statements are as following...
     // :gem: [@username] for [reason] -- this is the suggested statement syntax
     // [@username] :gem: for [reason]
-    var isReasonUndefined = (typeof reason === '');
+    var isReasonEmpty = (reason == '');
     var isGemReceiverValid = !(membersInChannel.indexOf(trimmedGemReceiverRaw) > -1);
     var isGemInReason = (reason.indexOf(':gem:') > -1);
     var isGemReceiverInReason = (reason.indexOf(trimmedGemReceiverRaw) > -1);
 
     // For debugging
-    console.log('Is reason undefined: ' + isReasonUndefined + '\n' +
+    console.log('Is reason undefined: ' + isReasonEmpty + '\n' +
                 'Is gem receiver valid: ' + isGemReceiverValid + '\n' +
                 'Is gem in reason statement: ' + isGemInReason + '\n' +
                 'Is gem receiver in reason: ' + isGemReceiverInReason
             );
-    if (isReasonUndefined || isGemReceiverValid || isGemInReason || isGemReceiverInReason){
+    if (isReasonEmpty || isGemReceiverValid || isGemInReason || isGemReceiverInReason){
       // User typed an invalid statement, output error message
       bot.reply(message, 'Sorry, ' + gemGiver + '. There was an error in your gem statement...\n' +
         'Please type your gem statement like this:\n' +
