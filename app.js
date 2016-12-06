@@ -122,11 +122,6 @@ controller.hears(':gem:','ambient',function(bot,message) {
       reason = messageText.substr(messageText.indexOf('for ') + 4);
     }
 
-    console.log("Inside the callback: " + JSON.stringify(membersInChannel));
-    console.log("Username I'm trying to validate: " + trimmedGemReceiverRaw);
-    console.log("membersInChannel is type: " + typeof membersInChannel);
-    console.log("Is membersInChannel array: " + Array.isArray(membersInChannel));
-    console.log("Is username in the membersInChannel object: " + (membersInChannel.indexOf(trimmedGemReceiverRaw) > -1));
     if (typeof reason === 'undefined' || !(membersInChannel.indexOf(trimmedGemReceiverRaw) > -1)){
       bot.reply(message, 'Sorry, ' + gemGiver + '. There was an error in your gem statement...\n' +
         'Please type your gem statement like this:\n' +
@@ -136,8 +131,7 @@ controller.hears(':gem:','ambient',function(bot,message) {
       bot.reply(message, 'Hello, ' + gemGiver + '! You have typed a gem!\n' +
           'Raw username: ' + trimmedGemReceiverRaw + '\n' +
           'Encoded username: ' + gemReceiver + '\n' +
-          'Reason: ' + reason + '\n' +
-          'Members in channel: ' + membersInChannel
+          'Reason: ' + reason
       );
     }
   });
