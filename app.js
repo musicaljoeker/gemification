@@ -104,7 +104,7 @@ controller.on('rtm_close',function(bot) {
 // Supply the channel ID and this will return a list of members in JSON
 function getMembersInChannel(bot, message){
   bot.api.channels.info({channel: message.channel}, function(err, response) {
-    bot.reply(message, "ChannelID: " + channel + "\n" +
+    bot.reply(message, "Channel: " + message.channel + "\n" +
     "This is the response: " + JSON.stringify(response));
   });
 }
