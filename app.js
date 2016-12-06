@@ -116,7 +116,7 @@ controller.hears(':gem:','ambient',function(bot,message) {
   var gemGiver = '<@' + message.user + '>';
   var gemReceiverRaw = String(messageText.match(/@([^\s]+)/g));
   var trimmedGemReceiverRaw = gemReceiverRaw.substring(1, gemReceiverRaw.length-1);
-  var gemReceiver = '<@' + gemReceiverRaw + '>';
+  var gemReceiver = '<@' + trimmedGemReceiverRaw + '>';
   var reason;
   if(messageText.includes('for ')){
     reason = messageText.substr(messageText.indexOf('for ') + 4);
