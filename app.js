@@ -115,21 +115,21 @@ controller.hears(':gem:','ambient',function(bot,message) {
   var membersInChannel = getMembersInChannel(bot, message);
   var gemGiver = '<@' + message.user + '>';
   var gemReceiverRaw = String(messageText.match(/@([^\s]+)/g));
-  gemReceiverRaw = gemReceiverRaw.substring(1, gemReceiverRaw.length-1);
+  var trimmedGemReceiverRaw = gemReceiverRaw.substring(1, gemReceiverRaw.length-1);
   var gemReceiver = '<@' + gemReceiverRaw + '>';
   var reason;
   if(messageText.includes('for ')){
     reason = messageText.substr(messageText.indexOf('for ') + 4);
   }
 
-  if (gemReceiverRaw === 'null' || typeof reason === 'undefined'){
+  if (gemReceiverRaw == 'null' || typeof reason === 'undefined'){
     bot.reply(message, 'Sorry, ' + gemGiver + '. There was an error in your gem statement...\n' +
       'Please type your gem statement like this:\n' +
       ':gem: @[username] for [reason]'
     );
   } else{
     bot.reply(message, 'Hello, ' + gemGiver + '! You have typed a gem!\n' +
-        'Raw username: ' + gemReceiverRaw + '\n' +
+        'Raw username: ' + trimmedGemReceiverRaw + '\n' +
         'Encoded username: ' + gemReceiver + '\n' +
         'Reason: ' + reason
     );
