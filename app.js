@@ -122,7 +122,8 @@ controller.hears(':gem:','ambient',function(bot,message) {
       reason = messageText.substr(messageText.indexOf('for ') + 4);
     }
 
-    if (typeof reason === 'undefined' || !(membersInChannel.indexOf(trimmedGemReceiverRaw) > -1)){
+    if (typeof reason === 'undefined' || !(membersInChannel.indexOf(trimmedGemReceiverRaw) > -1) ||
+          reason.indexOf(':gem:') || reason.indexOf(trimmedGemReceiverRaw)){
       bot.reply(message, 'Sorry, ' + gemGiver + '. There was an error in your gem statement...\n' +
         'Please type your gem statement like this:\n' +
         ':gem: @[username] for [reason]'
