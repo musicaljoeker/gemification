@@ -114,7 +114,7 @@ controller.hears(':gem:','ambient',function(bot,message) {
   var messageText = message.text;
   var membersInChannel = getMembersInChannel(bot, message);
   var gemGiver = '<@' + message.user + '>';
-  var gemReceiverRaw = messageText.match(/@([^\s]+)/g);
+  var gemReceiverRaw = String(messageText.match(/@([^\s]+)/g));
   gemReceiverRaw = gemReceiverRaw.substring(1, gemReceiverRaw.length-1);
   var gemReceiver = '<' + gemReceiverRaw;
   var reason;
