@@ -122,7 +122,7 @@ controller.hears(':gem:','ambient',function(bot,message) {
       reason = messageText.substr(messageText.indexOf('for ') + 4);
     }
 
-    console.log("Inside the callback: " + membersInChannel);
+    console.log("Inside the callback: " + JSON.stringify(membersInChannel));
     console.log("Username I'm trying to validate: " + trimmedGemReceiverRaw);
     console.log("membersInChannel is type: " + typeof membersInChannel);
     console.log("Is username in the membersInChannel object: " + (trimmedGemReceiverRaw in membersInChannel));
