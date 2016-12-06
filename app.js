@@ -133,33 +133,35 @@ controller.hears(':gem:','ambient',function(bot,message) {
     }
 
     // This if-statement checks for a variety of conditions
+
     // First, it checks to see if the reason is an empty string -- it requires a reason for
     // storage to the database.
+    var isReasonEmpty = (reason == '');
     // Second, it checks to see if the member the user entered to give the gem TO is a valid username
     // in the channel.
+    var isGemReceiverValid = !(membersInChannel.indexOf(trimmedGemReceiverRaw) > -1);
     // Third, it checks if the :gem: is typed after the word 'for' meaning the user typed their
     // statement in the wrong order.
+    var isGemInReason = (reason.indexOf(':gem:') > -1);
     // Fourth, it checks if the user typed in the message is after 'for' meaning the user typed
     // their statement in the wrong order.
+    var isGemReceiverInReason = (reason.indexOf(trimmedGemReceiverRaw) > -1);
+
     // If none of these condition are met, the user typed a valid gem statment and program execution
     // can proceed. Valid gem statements are as following...
     // :gem: [@username] for [reason] -- this is the suggested statement syntax
     // [@username] :gem: for [reason]
-    var isReasonEmpty = (reason == '');
-    var isGemReceiverValid = !(membersInChannel.indexOf(trimmedGemReceiverRaw) > -1);
-    var isGemInReason = (reason.indexOf(':gem:') > -1);
-    var isGemReceiverInReason = (reason.indexOf(trimmedGemReceiverRaw) > -1);
 
     // For debugging
     console.log('Is reason undefined: ' + isReasonEmpty + '\n' +
-                'Is gem receiver valid: ' + isGemReceiverValid + '\n' +
+                'Is gem receiver invalid: ' + isGemReceiverValid + '\n' +
                 'Is gem in reason statement: ' + isGemInReason + '\n' +
                 'Is gem receiver in reason: ' + isGemReceiverInReason
             );
     if (isReasonEmpty || isGemReceiverValid || isGemInReason || isGemReceiverInReason){
       // User typed an invalid statement, output error message
       bot.reply(message, 'Sorry, ' + gemGiver + '. There was an error in your gem statement...\n' +
-        'Please type your gem statement like this:\n' +
+        'Please type your gem statement using a valid username like this:\n' +
         ':gem: [@username] for [reason]'
       );
     } else{
