@@ -124,6 +124,7 @@ controller.hears(':gem:','ambient',function(bot,message) {
 
     console.log("Inside the callback: " + membersInChannel);
     console.log("Username I'm trying to validate: " + trimmedGemReceiverRaw);
+    console.log("membersInChannel is type: " + typeof membersInChannel);
     console.log("Is username in the membersInChannel array: " + membersInChannel.indexOf(trimmedGemReceiverRaw) > -1);
     if (gemReceiverRaw == 'null' || typeof reason === 'undefined' || membersInChannel.indexOf(trimmedGemReceiverRaw) > -1){
       bot.reply(message, 'Sorry, ' + gemGiver + '. There was an error in your gem statement...\n' +
