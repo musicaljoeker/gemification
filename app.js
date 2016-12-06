@@ -147,8 +147,8 @@ controller.hears(':gem:','ambient',function(bot,message) {
     // [@username] :gem: for [reason]
     var isReasonUndefined = (typeof reason === 'undefined');
     var isGemReceiverValid = !(membersInChannel.indexOf(trimmedGemReceiverRaw) > -1);
-    var isGemInReason = reason.indexOf(':gem:');
-    var isGemReceiverInReason = reason.indexOf(trimmedGemReceiverRaw);
+    var isGemInReason = (reason.indexOf(':gem:') > -1);
+    var isGemReceiverInReason = (reason.indexOf(trimmedGemReceiverRaw) > -1);
 
     // For debugging
     console.log('Is reason undefined: ' + isReasonUndefined + '\n' +
