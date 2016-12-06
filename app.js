@@ -122,7 +122,8 @@ controller.hears(':gem:','ambient',function(bot,message) {
     reason = messageText.substr(messageText.indexOf('for ') + 4);
   }
 
-  if (gemReceiverRaw == 'null' || typeof reason === 'undefined' || membersInChannel.indexOf(trimmedGemReceiverRaw) > -1){
+// || membersInChannel.indexOf(trimmedGemReceiverRaw) > -1
+  if (gemReceiverRaw == 'null' || typeof reason === 'undefined'){
     bot.reply(message, 'Sorry, ' + gemGiver + '. There was an error in your gem statement...\n' +
       'Please type your gem statement like this:\n' +
       ':gem: @[username] for [reason]'
@@ -131,7 +132,8 @@ controller.hears(':gem:','ambient',function(bot,message) {
     bot.reply(message, 'Hello, ' + gemGiver + '! You have typed a gem!\n' +
         'Raw username: ' + trimmedGemReceiverRaw + '\n' +
         'Encoded username: ' + gemReceiver + '\n' +
-        'Reason: ' + reason
+        'Reason: ' + reason + '\n' +
+        'Members in channel: ' + membersInChannel
     );
   }
 });
