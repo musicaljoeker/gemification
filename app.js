@@ -139,7 +139,7 @@ controller.hears(':gem:','ambient',function(bot,message) {
     var isReasonEmpty = (reason == '');
     // Second, it checks to see if the member the user entered to give the gem TO is a valid username
     // in the channel.
-    var isGemReceiverValid = !(membersInChannel.indexOf(trimmedGemReceiverRaw) > -1);
+    var isGemReceiverInvalid = !(membersInChannel.indexOf(trimmedGemReceiverRaw) > -1);
     // Third, it checks if the :gem: is typed after the word 'for' meaning the user typed their
     // statement in the wrong order.
     var isGemInReason = (reason.indexOf(':gem:') > -1);
@@ -154,11 +154,11 @@ controller.hears(':gem:','ambient',function(bot,message) {
 
     // For debugging
     console.log('Is reason undefined: ' + isReasonEmpty + '\n' +
-                'Is gem receiver invalid: ' + isGemReceiverValid + '\n' +
+                'Is gem receiver invalid: ' + isGemReceiverInvalid + '\n' +
                 'Is gem in reason statement: ' + isGemInReason + '\n' +
                 'Is gem receiver in reason: ' + isGemReceiverInReason
             );
-    if (isReasonEmpty || isGemReceiverValid || isGemInReason || isGemReceiverInReason){
+    if (isReasonEmpty || isGemReceiverInvalid || isGemInReason || isGemReceiverInReason){
       // User typed an invalid statement, output error message
       bot.reply(message, 'Sorry, ' + gemGiver + '. There was an error in your gem statement...\n' +
         'Please type your gem statement using a valid username like this:\n' +
