@@ -104,7 +104,6 @@ controller.on('rtm_close',function(bot) {
 // Supply this will return a list of members in JSON
 function getMembersInChannel(bot, message, callback){
   bot.api.channels.info({channel: message.channel}, function(err, response) {
-    console.log("Inside the call: " + response.channel.members);
     callback(response.channel.members);
   });
 }
@@ -123,6 +122,8 @@ controller.hears(':gem:','ambient',function(bot,message) {
       reason = messageText.substr(messageText.indexOf('for ') + 4);
     }
 
+    console.log("Inside the callback: " + membersInChannel);
+    console.log("Username I'm trying to validate: " + trimmedGemReceiverRaw);
   // || membersInChannel.indexOf(trimmedGemReceiverRaw) > -1
     if (gemReceiverRaw == 'null' || typeof reason === 'undefined' || membersInChannel.indexOf(trimmedGemReceiverRaw) > -1){
       bot.reply(message, 'Sorry, ' + gemGiver + '. There was an error in your gem statement...\n' +
