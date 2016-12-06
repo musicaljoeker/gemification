@@ -114,6 +114,8 @@ controller.hears(':gem:','ambient',function(bot,message) {
   // getting all of the usernames in the channel, then executing the callback function
   // after the task gets all the usernames
   getMembersInChannel(bot, message, function(membersInChannel){
+    // For debugging
+    console.log('***************BEGIN DEBUGGING***************');
     // Everything the user typed in the message
     var messageText = message.text;
     // Person who gave the :gem:
@@ -131,6 +133,16 @@ controller.hears(':gem:','ambient',function(bot,message) {
     if(messageText.includes('for ')){
       reason = messageText.substr(messageText.indexOf('for ') + 4);
     }
+
+    // For debugging
+    console.log('***************VARIABLES***************' + '\n' +
+                'Message Text: ' + JSON.stringify(messageText) + '\n' +
+                'Gem Giver: ' + gemGiver + '\n' +
+                'Gem Receiver Raw: ' + gemReceiverRaw + '\n' +
+                'Trimmed Gem Receiver Raw: ' + trimmedGemReceiverRaw + '\n' +
+                'Gem Receiver' + gemReceiver + '\n' +
+                'Reason' + reason
+            );
 
     // This if-statement checks for a variety of conditions
 
@@ -153,7 +165,8 @@ controller.hears(':gem:','ambient',function(bot,message) {
     // [@username] :gem: for [reason]
 
     // For debugging
-    console.log('Is reason undefined: ' + isReasonEmpty + '\n' +
+    console.log('***************VALIDATIONS***************' + '\n' +
+                'Is reason undefined: ' + isReasonEmpty + '\n' +
                 'Is gem receiver invalid: ' + isGemReceiverInvalid + '\n' +
                 'Is gem in reason statement: ' + isGemInReason + '\n' +
                 'Is gem receiver in reason: ' + isGemReceiverInReason
@@ -172,6 +185,8 @@ controller.hears(':gem:','ambient',function(bot,message) {
           'Reason: ' + reason
       );
     }
+    // For debugging
+    console.log('***************END DEBUGGING***************');
   });
 });
 
