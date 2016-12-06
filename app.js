@@ -105,7 +105,7 @@ controller.on('rtm_close',function(bot) {
 function getMembersInChannel(bot, message){
   bot.api.channels.info({channel: message.channel}, function(err, response) {
     bot.reply(message, "Channel: " + message.channel + "\n" +
-    "These are the members on this channel: " + JSON.stringify(response.ok)
+    "These are the members on this channel: " + JSON.stringify(response.ok));
   });
 }
 
