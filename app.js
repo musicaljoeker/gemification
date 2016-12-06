@@ -106,38 +106,38 @@ function getMembersInChannel(bot, message, callback){
   bot.api.channels.info({channel: message.channel}, function(err, response) {
     console.log("Inside the call: " + response.channel.members);
     callback(response.channel.members);
-    return response.channel.members;
   });
 }
 
 // Message data contains the following content by this association
 // type, channel, user, text, ts, team, event, match
 controller.hears(':gem:','ambient',function(bot,message) {
-  var messageText = message.text;
-  var membersInChannel = getMembersInChannel(bot, message, function(membersInChannel){console.log("After the call: " + membersInChannel)});
-  var gemGiver = '<@' + message.user + '>';
-  var gemReceiverRaw = String(messageText.match(/@([^\s]+)/g));
-  var trimmedGemReceiverRaw = gemReceiverRaw.substring(1, gemReceiverRaw.length-1);
-  var gemReceiver = '<@' + trimmedGemReceiverRaw + '>';
-  var reason;
-  if(messageText.includes('for ')){
-    reason = messageText.substr(messageText.indexOf('for ') + 4);
-  }
+  getMembersInChannel(bot, message, function(membersInChannel){
+    var messageText = message.text;
+    var gemGiver = '<@' + message.user + '>';
+    var gemReceiverRaw = String(messageText.match(/@([^\s]+)/g));
+    var trimmedGemReceiverRaw = gemReceiverRaw.substring(1, gemReceiverRaw.length-1);
+    var gemReceiver = '<@' + trimmedGemReceiverRaw + '>';
+    var reason;
+    if(messageText.includes('for ')){
+      reason = messageText.substr(messageText.indexOf('for ') + 4);
+    }
 
-// || membersInChannel.indexOf(trimmedGemReceiverRaw) > -1
-  if (gemReceiverRaw == 'null' || typeof reason === 'undefined'){
-    bot.reply(message, 'Sorry, ' + gemGiver + '. There was an error in your gem statement...\n' +
-      'Please type your gem statement like this:\n' +
-      ':gem: @[username] for [reason]'
-    );
-  } else{
-    bot.reply(message, 'Hello, ' + gemGiver + '! You have typed a gem!\n' +
-        'Raw username: ' + trimmedGemReceiverRaw + '\n' +
-        'Encoded username: ' + gemReceiver + '\n' +
-        'Reason: ' + reason + '\n' +
-        'Members in channel: ' + membersInChannel
-    );
-  }
+  // || membersInChannel.indexOf(trimmedGemReceiverRaw) > -1
+    if (gemReceiverRaw == 'null' || typeof reason === 'undefined' || membersInChannel.indexOf(trimmedGemReceiverRaw) > -1){
+      bot.reply(message, 'Sorry, ' + gemGiver + '. There was an error in your gem statement...\n' +
+        'Please type your gem statement like this:\n' +
+        ':gem: @[username] for [reason]'
+      );
+    } else{
+      bot.reply(message, 'Hello, ' + gemGiver + '! You have typed a gem!\n' +
+          'Raw username: ' + trimmedGemReceiverRaw + '\n' +
+          'Encoded username: ' + gemReceiver + '\n' +
+          'Reason: ' + reason + '\n' +
+          'Members in channel: ' + membersInChannel
+      );
+    }
+  });
 });
 
 controller.storage.teams.all(function(err,teams) {
