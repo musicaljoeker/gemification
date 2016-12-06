@@ -111,24 +111,49 @@ function getMembersInChannel(bot, message, callback){
 // Message data contains the following content by this association
 // type, channel, user, text, ts, team, event, match
 controller.hears(':gem:','ambient',function(bot,message) {
+  // getting all of the usernames in the channel, then executing the callback function
+  // after the task gets all the usernames
   getMembersInChannel(bot, message, function(membersInChannel){
+    // Everything the user typed in the message
     var messageText = message.text;
+    // Person who gave the :gem:
     var gemGiver = '<@' + message.user + '>';
+    // Raw username who is getting the gem (ex. @UW392NNSK>)
     var gemReceiverRaw = String(messageText.match(/@([^\s]+)/g));
+    // Trimmed raw username who is getting the gem (ex. UW392NNSK)
     var trimmedGemReceiverRaw = gemReceiverRaw.substring(1, gemReceiverRaw.length-1);
+    // Encoded username who is getting the gem (ex. <@UW392NNSK>, but will display as @john.doe
+    // in the Slack app)
     var gemReceiver = '<@' + trimmedGemReceiverRaw + '>';
+    // Instantiating the reason variable
     var reason;
+    // Checking if the user type a reason after the keyword 'for ', if not, do nothing
     if(messageText.includes('for ')){
       reason = messageText.substr(messageText.indexOf('for ') + 4);
     }
 
+    // This if-statement checks for a variety of conditions
+    // First, it checks to see if the reason is undefinied -- it requires a reason for storage to the
+    // database.
+    // Second, it checks to see if the member the user entered to give the gem TO is a valid username
+    // in the channel.
+    // Third, it checks if the :gem: is typed after the word 'for' meaning the user typed their
+    // statement in the wrong order.
+    // Fourth, it checks if the user typed in the message is after 'for' meaning the user typed
+    // their statement in the wrong order.
+    // If none of these condition are met, the user typed a valid gem statment and program execution
+    // can proceed. Valid gem statements are as following...
+    // :gem: [@username] for [reason] -- this is the suggested statement syntax
+    // [@username] :gem: for [reason]
     if (typeof reason === 'undefined' || !(membersInChannel.indexOf(trimmedGemReceiverRaw) > -1) ||
           reason.indexOf(':gem:') || reason.indexOf(trimmedGemReceiverRaw)){
+      // User typed an invalid statement, output error message
       bot.reply(message, 'Sorry, ' + gemGiver + '. There was an error in your gem statement...\n' +
         'Please type your gem statement like this:\n' +
-        ':gem: @[username] for [reason]'
+        ':gem: [@username] for [reason]'
       );
     } else{
+      // User typed a valid statement, we have valid data, proceed with database calls
       bot.reply(message, 'Hello, ' + gemGiver + '! You have typed a gem!\n' +
           'Raw username: ' + trimmedGemReceiverRaw + '\n' +
           'Encoded username: ' + gemReceiver + '\n' +
