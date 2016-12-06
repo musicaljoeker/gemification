@@ -102,9 +102,10 @@ controller.on('rtm_close',function(bot) {
 });
 
 // Supply this will return a list of members in JSON
-function getMembersInChannel(bot, message){
+function getMembersInChannel(bot, message, callback){
   bot.api.channels.info({channel: message.channel}, function(err, response) {
     console.log("Inside the call: " + response.channel.members);
+    callback(response.channel.members);
     return response.channel.members;
   });
 }
@@ -113,8 +114,7 @@ function getMembersInChannel(bot, message){
 // type, channel, user, text, ts, team, event, match
 controller.hears(':gem:','ambient',function(bot,message) {
   var messageText = message.text;
-  var membersInChannel = getMembersInChannel(bot, message);
-  console.log("After the call: " + membersInChannel);
+  var membersInChannel = getMembersInChannel(bot, message, function(membersInChannel){console.log("After the call: " + membersInChannel)});
   var gemGiver = '<@' + message.user + '>';
   var gemReceiverRaw = String(messageText.match(/@([^\s]+)/g));
   var trimmedGemReceiverRaw = gemReceiverRaw.substring(1, gemReceiverRaw.length-1);
