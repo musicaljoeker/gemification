@@ -129,8 +129,9 @@ controller.hears(':gem:','ambient',function(bot,message) {
     );
   } else{
     bot.reply(message, 'Hello, ' + gemGiver + '! You have typed a gem!\n' +
-        'This is who it\'s going to: ' + gemReceiverRaw + '\n' +
-        'And this is why you are giving the gem: ' + reason
+        'Raw username: ' + gemReceiverRaw + '\n' +
+        'Encoded username: ' + gemReceiver + '\n' +
+        'Reason: ' + reason
     );
   }
 });
