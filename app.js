@@ -158,6 +158,8 @@ controller.hears(':gem:','ambient',function(bot,message) {
     // Fourth, it checks if the user typed in the message is after 'for' meaning the user typed
     // their statement in the wrong order.
     var isGemReceiverInReason = (reason.indexOf(trimmedGemReceiverRaw) > -1);
+    // Fifth, it checks to see if a user trying to give a gem to themselves.
+    var isSelfGivingGem = (gemGiver == gemReceiver);
 
     // If none of these condition are met, the user typed a valid gem statment and program execution
     // can proceed. Valid gem statements are as following...
@@ -169,7 +171,8 @@ controller.hears(':gem:','ambient',function(bot,message) {
                 'Is reason undefined: ' + isReasonEmpty + '\n' +
                 'Is gem receiver invalid: ' + isGemReceiverInvalid + '\n' +
                 'Is gem in reason statement: ' + isGemInReason + '\n' +
-                'Is gem receiver in reason: ' + isGemReceiverInReason
+                'Is gem receiver in reason: ' + isGemReceiverInReason + '\n' +
+                'Is user giving themselves a gem: ' + isSelfGivingGem
             );
     if (isReasonEmpty || isGemReceiverInvalid || isGemInReason || isGemReceiverInReason){
       // User typed an invalid statement, output error message
@@ -177,6 +180,11 @@ controller.hears(':gem:','ambient',function(bot,message) {
         'Please type your gem statement using a valid username like this:\n' +
         ':gem: [@username] for [reason]'
       );
+    }
+    // Checks if the the someone is trying to give a gem to themselves
+    else if(isSelfGivingGem){
+      bot.reply(message, 'Nice try, jackwagon. You can\'t give a gem to yourself. ' +
+                'You may only give gems to other people in this channel.');
     } else{
       // User typed a valid statement, we have valid data, proceed with database calls
       bot.reply(message, 'Hello, ' + gemGiver + '! You have typed a gem!\n' +
