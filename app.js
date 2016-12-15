@@ -239,15 +239,39 @@ controller.hears(':gem:','ambient',function(bot,message) {
   });
 });
 
+// Leaderboard query
 controller.hears('leaderboard','direct_mention',function(bot,message) {
   // Getting the database pool
   DBPool.getConnection(function(err, connection){
     if (err) throw err;
     connection.query('SELECT username, currentGems FROM userGem ORDER BY currentGems DESC', function(err, rows){
       // Done with connection
-      bot.reply(message, JSON.stringify(rows));
       connection.release();
       // Don't use connection here, it has been returned to the pool
+
+      // Parsing the leaderboard
+      // Example....
+      //
+      // Leaderboard:
+      // 1.) emily.albulushi 5
+      // 2.) kerkhofj 4
+      // 3.) josh.schmidt 3
+      // 4.) kurt.kaufman 3
+      // 5.) likwam29 3
+      // 6.) sean.mitchell 2
+      // 7.) alex.flasch 1
+      // 8.) derrick.heinemann 1
+      // 9.) weinks15 1
+      // 10.) bateset39 1
+      var leaderboardStr = 'Leaderboard:\n';
+      for(var i=0; i<rows.length; i++){
+        if(i==rows.length-1){
+          leaderboardStr = (i+1) + ".) " + rows[i].username + " " + rows[i].currentGems;
+        } else{
+          leaderboardStr = (i+1) + ".) " + rows[i].username + " " + rows[i].currentGems + "\n";
+        }
+      }
+      bot.reply(message, leaderboardStr);
     });
   });
 });
