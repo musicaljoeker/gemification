@@ -128,7 +128,8 @@ function isEmptyObject(obj) {
 function convertIDToName(id, bot, message){
     getMembersInChannel(bot, message, function(membersInChannel){
       var index = membersInChannel.indexOf(id);
-      console.log('Index of ' + id + ' : ' + index);
+      console.log('Index of ' + id + ': ' + index);
+      console.log('Name: ' + membersInChannel[index].name);
     });
 }
 
