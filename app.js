@@ -295,7 +295,7 @@ controller.hears('leaderboard',['direct_mention','direct_message'],function(bot,
 // If the user is an admin, then it will submit a query to the database adding a row
 // to the gemPeriod table and firing a trigger in the database to set all currentGems
 // to 0 for all users.
-controller.hears('clear leaderboard','direct_message',function(bot,message) {
+controller.hears('clear gems','direct_message',function(bot,message) {
   // Validates if the user typed is an admin
   // *****STILL NEED TO BUILD VALIDATION*****
 
