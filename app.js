@@ -124,19 +124,20 @@ function isEmptyObject(obj) {
   return !Object.keys(obj).length;
 }
 
-// Supply information about all the users in the channel
+// Supply this will return information about the channel
 function getAllUsers(bot, message, id, callback){
   bot.api.users.list({}, function(err, response) {
-    return callback(response.members, id);
+    callback(response.members, id);
   });
 }
 
-// Converts Slack user ID to a name
+// Converts user ID to name
 function convertIDToName(id, bot, message){
-    return getAllUsers(bot, message, id, function(membersInChannel, id){
-      return membersInChannel.filter(function(member){
+    getAllUsers(bot, message, id, function(membersInChannel, id){
+      var name = membersInChannel.filter(function(member){
         return member.id == id;
       })[0].name;
+      console.log('Name: ' + name);
     });
 }
 
@@ -300,9 +301,10 @@ controller.hears('leaderboard',['direct_mention','direct_message'],function(bot,
         var leaderboardStr = 'Leaderboard:\n';
         for(var i=0; i<rows.length; i++){
           if(i==rows.length-1){
-            leaderboardStr += (i+1) + ".) " + convertIDToName(rows[i].username, bot, message) + " " + rows[i].currentGems;
+            convertIDToName(rows[i].username, bot, message);
+            leaderboardStr += (i+1) + ".) <" + rows[i].username + "> " + rows[i].currentGems;
           } else{
-            leaderboardStr += (i+1) + ".) " + convertIDToName(rows[i].username, bot, message) + " " + rows[i].currentGems + "\n";
+            leaderboardStr += (i+1) + ".) <" + rows[i].username + "> " + rows[i].currentGems + "\n";
           }
         }
         bot.reply(message, leaderboardStr);
