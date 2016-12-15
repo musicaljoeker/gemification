@@ -266,9 +266,9 @@ controller.hears('leaderboard','direct_mention',function(bot,message) {
       var leaderboardStr = 'Leaderboard:\n';
       for(var i=0; i<rows.length; i++){
         if(i==rows.length-1){
-          leaderboardStr = (i+1) + ".) " + rows[i].username + " " + rows[i].currentGems;
+          leaderboardStr += (i+1) + ".) " + rows[i].username + " " + rows[i].currentGems;
         } else{
-          leaderboardStr = (i+1) + ".) " + rows[i].username + " " + rows[i].currentGems + "\n";
+          leaderboardStr += (i+1) + ".) " + rows[i].username + " " + rows[i].currentGems + "\n";
         }
       }
       bot.reply(message, leaderboardStr);
