@@ -127,13 +127,13 @@ function isEmptyObject(obj) {
 // Supply information about all the users in the channel
 function getAllUsers(bot, message, id, callback){
   bot.api.users.list({}, function(err, response) {
-    callback(response.members, id);
+    return callback(response.members, id);
   });
 }
 
 // Converts Slack user ID to a name
 function convertIDToName(id, bot, message){
-    getAllUsers(bot, message, id, function(membersInChannel, id){
+    return getAllUsers(bot, message, id, function(membersInChannel, id){
       return membersInChannel.filter(function(member){
         return member.id == id;
       })[0].name;
