@@ -133,6 +133,7 @@ function getAllUsers(bot, message, callback){
 
 // Converts user ID to name
 function convertIDToName(id, bot, message){
+  console.log('Inside convertIDToName');
     getAllUsers(bot, message, function(membersInChannel){
       var index = membersInChannel.indexOf(id);
       console.log('Index of ' + id + ': ' + index);
