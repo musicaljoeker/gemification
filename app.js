@@ -294,9 +294,9 @@ controller.hears('leaderboard',['direct_mention','direct_message'],function(bot,
         for(var i=0; i<rows.length; i++){
           if(i==rows.length-1){
             convertIDToName(rows[i].username, bot, message);
-            leaderboardStr += (i+1) + ".) <@" + rows[i].username + "> " + rows[i].currentGems;
+            leaderboardStr += (i+1) + ".) <" + rows[i].username + "> " + rows[i].currentGems;
           } else{
-            leaderboardStr += (i+1) + ".) <@" + rows[i].username + "> " + rows[i].currentGems + "\n";
+            leaderboardStr += (i+1) + ".) <" + rows[i].username + "> " + rows[i].currentGems + "\n";
           }
         }
         bot.reply(message, leaderboardStr);
