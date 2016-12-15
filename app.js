@@ -32,28 +32,10 @@ var mysql = require('mysql');
 // Gemification server credentials
 var DBCredentials = require('./db-credentials.js');
 
-var DBPool = mysql.createPool({
-  host     : DBCredentials.HOST,
-  user     : DBCredentials.USERNAME,
-  password : DBCredentials.PASSWORD,
-  database : DBCredentials.DATABASE
-});
-
-DBPool.getConnection(function(err, connection){
-  if (err) throw err;
-  connection.query('SHOW TABLES', function(err, rows){
-    // Done with connection
-    console.log('Rows returned: ' + JSON.stringify(rows));
-    connection.release();
-    // Don't use connection here, it has been returned to the pool
-  });
-});
-
 if (!process.env.clientId || !process.env.clientSecret || !process.env.port || !process.env.redirectUri) {
   console.log('Error: Specify clientId clientSecret redirectUri and port in environment');
   process.exit(1);
 }
-
 
 var controller = Botkit.slackbot({
   json_file_store: './db_slackbutton_bot/',
@@ -120,6 +102,14 @@ controller.on('rtm_open',function(bot) {
 controller.on('rtm_close',function(bot) {
   console.log('** The RTM api just closed');
   // you may want to attempt to re-open
+});
+
+// Instantiating the Gemification database pool
+var DBPool = mysql.createPool({
+  host     : DBCredentials.HOST,
+  user     : DBCredentials.USERNAME,
+  password : DBCredentials.PASSWORD,
+  database : DBCredentials.DATABASE
 });
 
 // Supply this will return a list of members in JSON
@@ -226,6 +216,18 @@ controller.hears(':gem:','ambient',function(bot,message) {
                 'You may only give gems to other people in this channel.');
     } else{
       // User typed a valid statement, we have valid data, proceed with database calls
+
+      // Getting the database pool
+      DBPool.getConnection(function(err, connection){
+        if (err) throw err;
+        connection.query('SELECT username, currentGems FROM userGem ORDER BY currentGems DESC', function(err, rows){
+          // Done with connection
+          console.log('Rows returned: ' + JSON.stringify(rows));
+          connection.release();
+          // Don't use connection here, it has been returned to the pool
+        });
+      });
+
       bot.reply(message, 'Hello, ' + gemGiver + '! You have typed a gem!\n' +
           'Raw username: ' + trimmedGemReceiverRaw + '\n' +
           'Encoded username: ' + gemReceiver + '\n' +
@@ -234,5 +236,18 @@ controller.hears(':gem:','ambient',function(bot,message) {
     }
     // Logging
     console.log('***************END DEBUGGING***************');
+  });
+});
+
+controller.hears('leaderboard','direct_mention',function(bot,message) {
+  // Getting the database pool
+  DBPool.getConnection(function(err, connection){
+    if (err) throw err;
+    connection.query('SELECT username, currentGems FROM userGem ORDER BY currentGems DESC', function(err, rows){
+      // Done with connection
+      bot.reply(message, JSON.stringify(rows));
+      connection.release();
+      // Don't use connection here, it has been returned to the pool
+    });
   });
 });
