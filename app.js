@@ -229,7 +229,7 @@ controller.hears(':gem:','ambient',function(bot,message) {
       DBPool.getConnection(function(err, connection){
         if (err) throw err;
         connection.query(
-          'CALL incrementGems(' + gemGiverRaw + ', ' + gemReceiverRaw + ', ' + reason + ');',
+          'CALL incrementGems(' + gemGiverRaw + ', ' + trimmedGemReceiverRaw + ', ' + reason + ');',
           function(err, rows){
           if (err) throw err;
           // Done with connection
