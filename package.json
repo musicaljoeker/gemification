@@ -17,6 +17,7 @@
     "localtunnel": "^1.8.1",
     "md5": "^2.1.0",
     "mustache": "^2.2.1",
+    "mysql": "github:mysqljs/mysql",
     "promise": "^7.1.1",
     "randomstring": "^1.1.5",
     "request": "^2.67.0",

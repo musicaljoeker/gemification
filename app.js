@@ -1,9 +1,10 @@
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-           ______     ______     ______   __  __     __     ______
-          /\  == \   /\  __ \   /\__  _\ /\ \/ /    /\ \   /\__  _\
-          \ \  __<   \ \ \/\ \  \/_/\ \/ \ \  _"-.  \ \ \  \/_/\ \/
-           \ \_____\  \ \_____\    \ \_\  \ \_\ \_\  \ \_\    \ \_\
-            \/_____/   \/_____/     \/_/   \/_/\/_/   \/_/     \/_/
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  _______  _______ .___  ___.  __   _______  __    ______     ___   .___________. __    ______   .__   __.
+ /  _____||   ____||   \/   | |  | |   ____||  |  /      |   /   \  |           ||  |  /  __  \  |  \ |  |
+|  |  __  |  |__   |  \  /  | |  | |  |__   |  | |  ,----'  /  ^  \ `---|  |----`|  | |  |  |  | |   \|  |
+|  | |_ | |   __|  |  |\/|  | |  | |   __|  |  | |  |      /  /_\  \    |  |     |  | |  |  |  | |  . `  |
+|  |__| | |  |____ |  |  |  | |  | |  |     |  | |  `----./  _____  \   |  |     |  | |  `--'  | |  |\   |
+ \______| |_______||__|  |__| |__| |__|     |__|  \______/__/     \__\  |__|     |__|  \______/  |__| \__|
 
 
 This is a sample Slack Button application that adds a bot to one or many slack teams.
@@ -11,21 +12,43 @@ This is a sample Slack Button application that adds a bot to one or many slack t
 # RUN THE APP:
   Create a Slack app. Make sure to configure the bot user!
     -> https://api.slack.com/applications/new
-    -> Add the Redirect URI: http://localhost:3000/oauth
+    -> Add the Redirect URI: http://gemification.mio.uwosh.edu/oauth
   Run your bot from the command line:
     clientId=<my client id> clientSecret=<my client secret> port=3000 node slackbutton_bot.js
 # USE THE APP
   Add the app to your Slack by visiting the login page:
-    -> http://localhost:3000/login
+    -> http://gemification.mio.uwosh.edu/login
   After you've added the app, try talking to your bot!
 # EXTEND THE APP:
   Botkit has many features for building cool and useful bots!
   Read all about it here:
     -> http://howdy.ai/botkit
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 /* Uses the slack button feature to offer a real time bot to multiple teams */
 var Botkit = require('./lib/Botkit.js');
+// MySQL ORM package
+var mysql = require('mysql');
+// Gemification server credentials
+var DBCredentials = require('./db-credentials.js');
+
+var DBConnection = mysql.createConnection({
+  host     : DBCredentials.HOST,
+  user     : DBCredentials.USERNAME,
+  password : DBCredentials.PASSWORD,
+  database : DBCredentials.DATABASE
+});
+
+// Begin testing connection to the database
+DBConnection.connect();
+
+DBConnection.query('SHOW TABLES', function(err, rows, fields) {
+  if (err) throw err;
+  console.log('The query returned: ', rows[0].solution);
+});
+
+DBConnection.end();
+// End testing connection to the database
 
 if (!process.env.clientId || !process.env.clientSecret || !process.env.port || !process.env.redirectUri) {
   console.log('Error: Specify clientId clientSecret redirectUri and port in environment');
@@ -108,13 +131,31 @@ function getMembersInChannel(bot, message, callback){
   });
 }
 
+controller.storage.teams.all(function(err,teams) {
+  if (err) {
+    throw new Error(err);
+  }
+  // connect all teams with bots up to slack!
+  for (var t  in teams) {
+    if (teams[t].bot) {
+      controller.spawn(teams[t]).startRTM(function(err, bot) {
+        if (err) {
+          console.log('Error connecting bot to Slack:',err);
+        } else {
+          trackBot(bot);
+        }
+      });
+    }
+  }
+});
+
 // Message data contains the following content by this association
 // type, channel, user, text, ts, team, event, match
 controller.hears(':gem:','ambient',function(bot,message) {
   // getting all of the usernames in the channel, then executing the callback function
   // after the task gets all the usernames
   getMembersInChannel(bot, message, function(membersInChannel){
-    // For debugging
+    // Logging
     console.log('***************BEGIN DEBUGGING***************');
     // Everything the user typed in the message
     var messageText = message.text;
@@ -134,14 +175,14 @@ controller.hears(':gem:','ambient',function(bot,message) {
       reason = messageText.substr(messageText.indexOf('for ') + 4);
     }
 
-    // For debugging
+    // Logging
     console.log('***************VARIABLES***************' + '\n' +
                 'Message Text: ' + JSON.stringify(messageText) + '\n' +
                 'Gem Giver: ' + gemGiver + '\n' +
                 'Gem Receiver Raw: ' + gemReceiverRaw + '\n' +
                 'Trimmed Gem Receiver Raw: ' + trimmedGemReceiverRaw + '\n' +
-                'Gem Receiver' + gemReceiver + '\n' +
-                'Reason' + reason
+                'Gem Receiver: ' + gemReceiver + '\n' +
+                'Reason: ' + reason
             );
 
     // This if-statement checks for a variety of conditions
@@ -166,12 +207,12 @@ controller.hears(':gem:','ambient',function(bot,message) {
     // :gem: [@username] for [reason] -- this is the suggested statement syntax
     // [@username] :gem: for [reason]
 
-    // For debugging
+    // Logging
     console.log('***************VALIDATIONS***************' + '\n' +
                 'Is reason undefined: ' + isReasonEmpty + '\n' +
                 'Is gem receiver invalid: ' + isGemReceiverInvalid + '\n' +
                 'Is gem in reason statement: ' + isGemInReason + '\n' +
-                'Is gem receiver in reason: ' + isGemReceiverInReason + '\n' +
+                'Is gem receiver in reason statement: ' + isGemReceiverInReason + '\n' +
                 'Is user giving themselves a gem: ' + isSelfGivingGem
             );
     if (isReasonEmpty || isGemReceiverInvalid || isGemInReason || isGemReceiverInReason){
@@ -193,28 +234,7 @@ controller.hears(':gem:','ambient',function(bot,message) {
           'Reason: ' + reason
       );
     }
-    // For debugging
+    // Logging
     console.log('***************END DEBUGGING***************');
   });
-});
-
-controller.storage.teams.all(function(err,teams) {
-
-  if (err) {
-    throw new Error(err);
-  }
-
-  // connect all teams with bots up to slack!
-  for (var t  in teams) {
-    if (teams[t].bot) {
-      controller.spawn(teams[t]).startRTM(function(err, bot) {
-        if (err) {
-          console.log('Error connecting bot to Slack:',err);
-        } else {
-          trackBot(bot);
-        }
-      });
-    }
-  }
-
 });
