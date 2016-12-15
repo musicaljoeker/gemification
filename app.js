@@ -244,7 +244,9 @@ controller.hears('leaderboard','direct_mention',function(bot,message) {
   // Getting the database pool
   DBPool.getConnection(function(err, connection){
     if (err) throw err;
-    connection.query('SELECT username, currentGems FROM userGem ORDER BY currentGems DESC', function(err, rows){
+    connection.query(
+      'SELECT username, currentGems FROM userGem WHERE currentGems > 0 ORDER BY currentGems DESC',
+      function(err, rows){
       // Done with connection
       connection.release();
       // Don't use connection here, it has been returned to the pool
