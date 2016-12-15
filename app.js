@@ -228,7 +228,7 @@ controller.hears(':gem:','ambient',function(bot,message) {
       // Getting the database pool
       DBPool.getConnection(function(err, connection){
         if (err) throw err;
-        var giveGemQuery = 'CALL incrementGems(' + gemGiverRaw + ', ' + trimmedGemReceiverRaw + ', ' + reason + ');';
+        var giveGemQuery = 'CALL incrementGems(\'' + gemGiverRaw + '\', \'' + trimmedGemReceiverRaw + '\', \'' + reason + '\');';
 
         // For logging
         console.log('Give Gem Query: ' + giveGemQuery);
