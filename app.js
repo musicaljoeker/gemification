@@ -34,7 +34,7 @@ if (!process.env.clientId || !process.env.clientSecret || !process.env.port || !
 
 
 var controller = Botkit.slackbot({
-  json_file_store: './db_slackbutton_bot/',
+  // json_file_store: './db_slackbutton_bot/',
   // rtm_receive_messages: false, // disable rtm_receive_messages if you enable events api
 }).configureSlackApp(
   {
@@ -197,24 +197,24 @@ controller.hears(':gem:','ambient',function(bot,message) {
     console.log('***************END DEBUGGING***************');
   });
 });
-
-controller.storage.teams.all(function(err,teams) {
-
-  if (err) {
-    throw new Error(err);
-  }
-
-  // connect all teams with bots up to slack!
-  for (var t  in teams) {
-    if (teams[t].bot) {
-      controller.spawn(teams[t]).startRTM(function(err, bot) {
-        if (err) {
-          console.log('Error connecting bot to Slack:',err);
-        } else {
-          trackBot(bot);
-        }
-      });
-    }
-  }
-
-});
+//
+// controller.storage.teams.all(function(err,teams) {
+//
+//   if (err) {
+//     throw new Error(err);
+//   }
+//
+//   // connect all teams with bots up to slack!
+//   for (var t  in teams) {
+//     if (teams[t].bot) {
+//       controller.spawn(teams[t]).startRTM(function(err, bot) {
+//         if (err) {
+//           console.log('Error connecting bot to Slack:',err);
+//         } else {
+//           trackBot(bot);
+//         }
+//       });
+//     }
+//   }
+//
+// });
