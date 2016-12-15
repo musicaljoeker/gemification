@@ -32,23 +32,22 @@ var mysql = require('mysql');
 // Gemification server credentials
 var DBCredentials = require('./db-credentials.js');
 
-var DBConnection = mysql.createConnection({
+var DBPool = mysql.createPool({
   host     : DBCredentials.HOST,
   user     : DBCredentials.USERNAME,
   password : DBCredentials.PASSWORD,
   database : DBCredentials.DATABASE
 });
 
-// Begin testing connection to the database
-DBConnection.connect();
-
-DBConnection.query('SHOW TABLES', function(err, rows, fields) {
+DBPool.getConnection(function(err, connection){
   if (err) throw err;
-  console.log('The query returned: ', rows[0].solution);
+  connection.query('SHOW TABLES', function(err, rows){
+    // Done with connection
+    console.log('Rows returned: ' + JSON.stringify(rows));
+    connection.release();
+    // Don't use connection here, it has been returned to the pool
+  });
 });
-
-DBConnection.end();
-// End testing connection to the database
 
 if (!process.env.clientId || !process.env.clientSecret || !process.env.port || !process.env.redirectUri) {
   console.log('Error: Specify clientId clientSecret redirectUri and port in environment');
@@ -79,7 +78,6 @@ controller.setupWebserver(process.env.port,function(err,webserver) {
     }
   });
 });
-
 
 // just a simple way to make sure we don't
 // connect to the RTM twice for the same team
