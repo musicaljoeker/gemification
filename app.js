@@ -152,8 +152,10 @@ controller.hears(':gem:','ambient',function(bot,message) {
     console.log('***************BEGIN DEBUGGING***************');
     // Everything the user typed in the message
     var messageText = message.text;
+    // Raw user of the gem giver
+    var gemGiverRaw = message.user;
     // Person who gave the :gem:
-    var gemGiver = '<@' + message.user + '>';
+    var gemGiver = '<@' + gemGiverRaw + '>';
     // Raw username who is getting the gem (ex. @UW392NNSK>)
     var gemReceiverRaw = String(messageText.match(/@([^\s]+)/g));
     // Trimmed raw username who is getting the gem (ex. UW392NNSK)
@@ -171,6 +173,7 @@ controller.hears(':gem:','ambient',function(bot,message) {
     // Logging
     console.log('***************VARIABLES***************' + '\n' +
                 'Message Text: ' + JSON.stringify(messageText) + '\n' +
+                'Gem Giver Raw: ' + gemGiverRaw + '\n' +
                 'Gem Giver: ' + gemGiver + '\n' +
                 'Gem Receiver Raw: ' + gemReceiverRaw + '\n' +
                 'Trimmed Gem Receiver Raw: ' + trimmedGemReceiverRaw + '\n' +
@@ -225,19 +228,16 @@ controller.hears(':gem:','ambient',function(bot,message) {
       // Getting the database pool
       DBPool.getConnection(function(err, connection){
         if (err) throw err;
-        connection.query('SELECT username, currentGems FROM userGem ORDER BY currentGems DESC', function(err, rows){
+        connection.query(
+          'CALL incrementGems(' + gemGiverRaw + ', ' + gemReceiverRaw + ', ' + reason + ');',
+          function(err, rows){
+          if (err) throw err;
           // Done with connection
-          console.log('Rows returned: ' + JSON.stringify(rows));
           connection.release();
           // Don't use connection here, it has been returned to the pool
+          bot.reply(message, 'You have successfully given a gem to ' + gemReceiver + '!');
         });
       });
-
-      bot.reply(message, 'Hello, ' + gemGiver + '! You have typed a gem!\n' +
-          'Raw username: ' + trimmedGemReceiverRaw + '\n' +
-          'Encoded username: ' + gemReceiver + '\n' +
-          'Reason: ' + reason
-      );
     }
     // Logging
     console.log('***************END DEBUGGING***************');
