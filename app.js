@@ -260,13 +260,14 @@ controller.hears(':gem:','ambient',function(bot,message) {
 // 8.) derrick.heinemann 1
 // 9.) weinks15 1
 // 10.) bateset39 1
-controller.hears('leaderboard','direct_mention',function(bot,message) {
+controller.hears('leaderboard',['direct_mention','direct_message'],function(bot,message) {
   // Getting the database pool
   DBPool.getConnection(function(err, connection){
     if (err) throw err;
     connection.query(
       'SELECT username, currentGems FROM userGem WHERE currentGems > 0 ORDER BY currentGems DESC',
       function(err, rows){
+      if (err) throw err;
       // Done with connection
       connection.release();
       // Don't use connection here, it has been returned to the pool
@@ -285,6 +286,30 @@ controller.hears('leaderboard','direct_mention',function(bot,message) {
         }
         bot.reply(message, leaderboardStr);
       }
+    });
+  });
+});
+
+// This function listens for a direct message from the admin to clear the leaderboard.
+// First, it checks if the user is an admin and if not, spits out an error message
+// If the user is an admin, then it will submit a query to the database adding a row
+// to the gemPeriod table and firing a trigger in the database to set all currentGems
+// to 0 for all users.
+controller.hears('clear leaderboard','direct_message',function(bot,message) {
+  // Validates if the user typed is an admin
+  // *****STILL NEED TO BUILD VALIDATION*****
+
+  // Getting the database pool
+  DBPool.getConnection(function(err, connection){
+    if (err) throw err;
+    connection.query(
+      'INSERT INTO gemPeriod VALUES()',
+      function(err, rows){
+      if (err) throw err;
+      // Done with connection
+      connection.release();
+      // Don't use connection here, it has been returned to the pool
+      bot.reply(message, 'The leaderboard was cleared successfully!');
     });
   });
 });
