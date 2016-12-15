@@ -119,6 +119,11 @@ function getMembersInChannel(bot, message, callback){
   });
 }
 
+// Check if the object you are passing in is empty
+function isEmptyObject(obj) {
+  return !Object.keys(obj).length;
+}
+
 controller.storage.teams.all(function(err,teams) {
   if (err) {
     throw new Error(err);
@@ -239,7 +244,22 @@ controller.hears(':gem:','ambient',function(bot,message) {
   });
 });
 
-// Leaderboard query
+// The gemification bot listens for a direct meantion followed by the leaderboard
+// keyword. The bot then performs a query on the Gemification database and asks
+// for the top 10 people that have a gem count greater than 0.
+// The leaderboard is then paresed as a string in leaderboardStr like this...
+//
+// Leaderboard:
+// 1.) emily.albulushi 5
+// 2.) kerkhofj 4
+// 3.) josh.schmidt 3
+// 4.) kurt.kaufman 3
+// 5.) likwam29 3
+// 6.) sean.mitchell 2
+// 7.) alex.flasch 1
+// 8.) derrick.heinemann 1
+// 9.) weinks15 1
+// 10.) bateset39 1
 controller.hears('leaderboard','direct_mention',function(bot,message) {
   // Getting the database pool
   DBPool.getConnection(function(err, connection){
@@ -251,29 +271,20 @@ controller.hears('leaderboard','direct_mention',function(bot,message) {
       connection.release();
       // Don't use connection here, it has been returned to the pool
 
-      // Parsing the leaderboard
-      // Example....
-      //
-      // Leaderboard:
-      // 1.) emily.albulushi 5
-      // 2.) kerkhofj 4
-      // 3.) josh.schmidt 3
-      // 4.) kurt.kaufman 3
-      // 5.) likwam29 3
-      // 6.) sean.mitchell 2
-      // 7.) alex.flasch 1
-      // 8.) derrick.heinemann 1
-      // 9.) weinks15 1
-      // 10.) bateset39 1
-      var leaderboardStr = 'Leaderboard:\n';
-      for(var i=0; i<rows.length; i++){
-        if(i==rows.length-1){
-          leaderboardStr += (i+1) + ".) " + rows[i].username + " " + rows[i].currentGems;
-        } else{
-          leaderboardStr += (i+1) + ".) " + rows[i].username + " " + rows[i].currentGems + "\n";
+      if(isEmptyObject(rows)){
+        bot.reply(message, 'The leaderboard is empty. Try giving someone a gem!');
+      } else{
+        // Parsing the leaderboard
+        var leaderboardStr = 'Leaderboard:\n';
+        for(var i=0; i<rows.length; i++){
+          if(i==rows.length-1){
+            leaderboardStr += (i+1) + ".) " + rows[i].username + " " + rows[i].currentGems;
+          } else{
+            leaderboardStr += (i+1) + ".) " + rows[i].username + " " + rows[i].currentGems + "\n";
+          }
         }
+        bot.reply(message, leaderboardStr);
       }
-      bot.reply(message, leaderboardStr);
     });
   });
 });
