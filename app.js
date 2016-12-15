@@ -127,7 +127,7 @@ function isEmptyObject(obj) {
 // Supply this will return information about the channel
 function getAllUsers(bot, message, id, callback){
   bot.api.users.list(function(err, response) {
-    console.log('Inside users.list');
+    if(err) throw err;
     callback(response.members, id);
   });
 }
@@ -135,7 +135,6 @@ function getAllUsers(bot, message, id, callback){
 // Converts user ID to name
 function convertIDToName(id, bot, message){
     getAllUsers(bot, message, id, function(membersInChannel, id){
-      console.log('Inside callback function');
       var index = membersInChannel.indexOf(id);
       console.log('Index of ' + id + ': ' + index);
       console.log('Name: ' + JSON.stringify(membersInChannel));
