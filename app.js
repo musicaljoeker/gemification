@@ -133,11 +133,11 @@ function getAllUsers(bot, message, id, callback){
 
 // Converts user ID to name
 function convertIDToName(id, bot, message){
-    getAllUsers(bot, message, id, function(membersInChannel, id){
-      console.log('Name: ' + membersInChannel.filter(function(member){
+    console.log('Name: ' + getAllUsers(bot, message, id, function(membersInChannel, id){
+      membersInChannel.filter(function(member){
         return member.id == id;
-      })[0].name);
-    });
+      })[0].name;
+    }));
 }
 
 controller.storage.teams.all(function(err,teams) {
