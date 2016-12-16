@@ -140,7 +140,7 @@ function getSlackUsers(bot, message, callback){
 
 // Converts a Slack userId to a Slack username
 // Function takes in a JSON object of all Slack users and the Slack userId
-function convertIDToName(slackUsers, id){
+function convertIdToName(slackUsers, id){
   return slackUsers.filter(function(user){
     return user.id == id;
   })[0].name
@@ -180,13 +180,13 @@ controller.hears(':gem:','ambient',function(bot,message) {
       // Person who gave the :gem:
       var gemGiver = '<@' + gemGiverRaw + '>';
       // Username of the gem giver (ex. kerkhofj)
-      var gemGiverUsername = convertIDToName(allSlackUsers, gemGiverRaw);
+      var gemGiverUsername = convertIdToName(allSlackUsers, gemGiverRaw);
       // Raw username who is getting the gem (ex. @UW392NNSK>)
       var gemReceiverRaw = String(messageText.match(/@([^\s]+)/g));
       // Trimmed raw username who is getting the gem (ex. UW392NNSK)
       var trimmedGemReceiverRaw = gemReceiverRaw.substring(1, gemReceiverRaw.length-1);
       // Username of the gem receiver (ex. emily.albulushi)
-      var gemReceiverUsername = convertIDToName(allSlackUsers, trimmedGemReceiverRaw);
+      var gemReceiverUsername = convertIdToName(allSlackUsers, trimmedGemReceiverRaw);
       // Encoded username who is getting the gem (ex. <@UW392NNSK>, but will display as @john.doe
       // in the Slack app)
       var gemReceiver = '<@' + trimmedGemReceiverRaw + '>';
