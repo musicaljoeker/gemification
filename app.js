@@ -361,7 +361,7 @@ controller.hears('clear gems','direct_message',function(bot,message) {
       function(err, rows){
       if (err) throw err;
       console.log('isAdmin query response: ' + JSON.stringify(rows));
-      if(rows[0]==true){
+      if(rows[0].isAdmin==1){
         // user is an admin and may proceed to clear the gem period.
         connection.query(
           'INSERT INTO gemPeriod VALUES();',
