@@ -127,16 +127,16 @@ function isEmptyObject(obj) {
 // Supply this will return information about the channel
 function getAllUsers(bot, message, id, callback){
   bot.api.users.list({}, function(err, response) {
-    callback(response.members, id);
+    console.log('Name: ' + callback(response.members, id));
   });
 }
 
 // Converts user ID to name
 function convertIDToName(id, bot, message){
     getAllUsers(bot, message, id, function(membersInChannel, id){
-      console.log('Name: ' + membersInChannel.filter(function(member){
+      return membersInChannel.filter(function(member){
         return member.id == id;
-      })[0].name);
+      })[0].name;
     });
 }
 
