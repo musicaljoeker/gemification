@@ -76,6 +76,13 @@ function getSlackUsers(bot, message, callback){
   });
 }
 
+// Gets all users in the Slack channel and calls the callback function
+function getSlackUsersWithoutMessage(bot, callback){
+  bot.api.users.list({}, function(err, response) {
+    callback(response.members);
+  });
+}
+
 // Converts a Slack userId to a Slack username
 // Function takes in a JSON object of all Slack users and the Slack userId
 function convertIdToName(slackUsers, id){
@@ -124,7 +131,7 @@ controller.on('create_bot',function(bot,config) {
       });
 
       // Adding the created by user as an admin to the gemification
-      getSlackUsers(bot, message, function(allSlackUsers){
+      getSlackUsersWithoutMessage(bot, function(allSlackUsers){
         var createdByUsername = convertIdToName(allSlackUsers, config.createdBy);
         // Getting the database pool
         DBPool.getConnection(function(err, connection){
