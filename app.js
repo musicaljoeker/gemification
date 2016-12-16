@@ -217,7 +217,7 @@ controller.hears(':gem:','ambient',function(bot,message) {
       // their statement in the wrong order.
       var isGemReceiverInReason = (reason.indexOf(trimmedGemReceiverRaw) > -1);
       // Fifth, it checks to see if a user trying to give a gem to themselves.
-      var isSelfGivingGem = (gemGiver == gemReceiver);
+      var isSelfGivingGem = (gemGiverId == gemReceiver);
 
       // If none of these condition are met, the user typed a valid gem statment and program execution
       // can proceed. Valid gem statements are as following...
