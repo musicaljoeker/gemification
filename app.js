@@ -312,9 +312,9 @@ controller.hears('leaderboard',['direct_mention','direct_message'],function(bot,
           var leaderboardStr = 'Leaderboard:\n';
           for(var i=0; i<rows.length; i++){
             if(i==rows.length-1){
-              leaderboardStr += (i+1) + ".) <" + leaderboardUsernames[i] + "> " + rows[i].currentGems;
+              leaderboardStr += (i+1) + ".) " + leaderboardUsernames[i] + " " + rows[i].currentGems;
             } else{
-              leaderboardStr += (i+1) + ".) <" + leaderboardUsernames[i] + "> " + rows[i].currentGems + "\n";
+              leaderboardStr += (i+1) + ".) " + leaderboardUsernames[i] + " " + rows[i].currentGems + "\n";
             }
           }
           bot.reply(message, leaderboardStr);
