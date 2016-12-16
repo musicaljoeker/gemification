@@ -259,18 +259,18 @@ controller.hears(':gem:','ambient',function(bot,message) {
 
       if (isReasonEmpty || isGemReceiverInvalid || isGemInReason || isGemReceiverInReason){
         // User typed an invalid statement, output error message
-        var errorMessage = 'Sorry, ' + gemGiverEncoded + '. There was an error in your gem statement.\n You statement was invalid for the following reasons...\n';
+        var errorMessage = 'Sorry, ' + gemGiverEncoded + '. There was an error in your gem statement.\n You statement was invalid for the following reasons:\n';
         if(isReasonEmpty){
-          errorMessage += '- didn\'t include a reason statement\n';
+          errorMessage += '- you didn\'t include a reason statement\n';
         }
         if(isGemReceiverInvalid){
-          errorMessage += '- didn\'t type a valid gem receiver\n';
+          errorMessage += '- you didn\'t type a valid gem receiver\n';
         }
         if(isGemInReason){
-          errorMessage += '- typed gems in your reason statement\n';
+          errorMessage += '- you typed gems in your reason statement\n';
         }
         if(isGemReceiverInReason){
-          errorMessage += '- don\'t type users in your reason statement\n';
+          errorMessage += '- you don\'t type users in your reason statement\n';
         }
         errorMessage += 'Please type your gem statement using a valid username like this:\n' +
         ':gem: [@username] for [reason]';
