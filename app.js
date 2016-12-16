@@ -134,7 +134,7 @@ controller.on('create_bot',function(bot,config) {
             // Getting the database pool
             DBPool.getConnection(function(err, connection){
               if (err) throw err;
-              var createAdminUserQuery = 'INSERT INTO userGem (userId, username, isAdmin) VALUES (\'' + config.createdBy + '\', \'' + createdByUsername + '\', \'TRUE\')';
+              var createAdminUserQuery = 'INSERT INTO userGem (userId, username, isAdmin) VALUES (\'' + config.createdBy + '\', \'' + createdByUsername + '\', TRUE)';
               console.log('Create Admin User Query: ' + createAdminUserQuery);
               connection.query(
                 createAdminUserQuery,
@@ -147,7 +147,7 @@ controller.on('create_bot',function(bot,config) {
                   if (err) {
                     console.log(err);
                   } else {
-                    convo.say('Your user has been added to as an administrator to this program');
+                    convo.say('Your user has been added to as an administrator to gemification');
                   }
                 });
               });
