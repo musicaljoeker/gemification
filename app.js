@@ -255,7 +255,7 @@ controller.hears(':gem:','ambient',function(bot,message) {
             // Done with connection
             connection.release();
             // Don't use connection here, it has been returned to the pool
-            bot.reply(message, 'You gave a gem to ' + gemReceiver + '!');
+            bot.reply(message, gemGiverUsername + ', you gave a gem to ' + gemReceiverUsername + '!');
           });
         });
       }
