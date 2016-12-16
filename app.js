@@ -182,6 +182,7 @@ controller.hears(':gem:','ambient',function(bot,message) {
     getSlackUsers(bot, message, function(allSlackUsers){
       // Logging
       console.log('***************BEGIN DEBUGGING***************');
+      console.log('All Slack Users: ' + JSON.stringify(allSlackUsers));
       // Everything the user typed in the message
       var messageText = message.text;
       // Raw userId of the gem giver (ex. UW392NNSK)
