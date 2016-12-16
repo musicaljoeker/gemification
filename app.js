@@ -302,7 +302,7 @@ controller.hears('leaderboard',['direct_mention','direct_message'],function(bot,
           leaderboardUserIds.push(rows[i].username);
         }
         getAllUsers(bot, message, leaderboardUserIds, function(membersInChannel, leaderboardUserIds){
-          var leaderbarodUsernames = [];
+          var leaderboardUsernames = [];
           for(var j=0; j<leaderboardUserIds.length; j++){
             leaderboardUsernames.push(
               membersInChannel[j].filter(function(member){
