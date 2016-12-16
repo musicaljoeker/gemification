@@ -125,20 +125,20 @@ function isEmptyObject(obj) {
 }
 
 // Supply this will return information about the channel
-function getAllUsers(bot, message, id, callback){
+function getAllUsers(bot, message, leaderboardUserIds, callback){
   bot.api.users.list({}, function(err, response) {
-    console.log('Name: ' + callback(response.members, id) );
+    callback(response.members, leaderboardUserIds);
   });
 }
 
 // Converts user ID to name
-function convertIDToName(id, bot, message){
-    getAllUsers(bot, message, id, function(membersInChannel, id){
-      return membersInChannel.filter(function(member){
-        return member.id == id;
-      })[0].name;
-    });
-}
+// function convertIDToName(id, bot, message){
+//     getAllUsers(bot, message, id, function(membersInChannel, id){
+//       return membersInChannel.filter(function(member){
+//         return member.id == id;
+//       })[0].name;
+//     });
+// }
 
 controller.storage.teams.all(function(err,teams) {
   if (err) {
@@ -297,6 +297,22 @@ controller.hears('leaderboard',['direct_mention','direct_message'],function(bot,
         bot.reply(message, 'The leaderboard is empty. Try giving someone a gem!');
       } else{
         // Parsing the leaderboard
+        var leaderboardUserIds = [];
+        for(var i=0; i<rows.length; i++){
+          leaderboardUserIds.push(rows[i].username);
+        }
+        getAllUsers(bot, message, leaderboardUserIds, function(membersInChannel, leaderboardUserIds){
+          var leaderbarodUsernames = [];
+          for(var j=0; j<leaderboardUserIds.length; j++){
+            leaderboardUsernames.push(
+              membersInChannel[j].filter(function(member){
+                return member.id == id;
+              })[0].name);
+          }
+          console.log(JSON.stringify(leaderboardUsernames));
+        });
+
+
         var leaderboardStr = 'Leaderboard:\n';
         for(var i=0; i<rows.length; i++){
           if(i==rows.length-1){
