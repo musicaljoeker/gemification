@@ -305,8 +305,8 @@ controller.hears('leaderboard',['direct_mention','direct_message'],function(bot,
           var leaderboardUsernames = [];
           for(var j=0; j<leaderboardUserIds.length; j++){
             leaderboardUsernames.push(
-              membersInChannel[j].filter(function(member){
-                return member.id == id;
+              membersInChannel.filter(function(member){
+                return member.id == leaderboardUserIds[j];
               })[0].name);
           }
           console.log(JSON.stringify(leaderboardUsernames));
