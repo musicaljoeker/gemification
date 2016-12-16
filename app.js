@@ -173,10 +173,10 @@ controller.hears(':gem:','ambient',function(bot,message) {
       var gemGiverEncoded = '<@' + gemGiverId + '>';
       // Username of the gem giver (ex. kerkhofj)
       var gemGiverUsername = convertIdToName(allSlackUsers, gemGiverId);
-      // Raw username who is getting the gem (ex. @UW392NNSK>)
-      var gemReceiverRaw = String(messageText.match(/@([^\s]+)/g));
+      // // Raw username who is getting the gem (ex. @UW392NNSK>)
+      // var gemReceiverRaw = String(messageText.match(/@([^\s]+)/g));
       // Trimmed raw username who is getting the gem (ex. UW392NNSK)
-      var trimmedGemReceiverRaw = gemReceiverRaw.substring(1, gemReceiverRaw.length-1);
+      var trimmedGemReceiverRaw = String(messageText.match(/@([^\s]+)/g)).substring(1, String(messageText.match(/@([^\s]+)/g)).length-1);
       // Username of the gem receiver (ex. emily.albulushi)
       var gemReceiverUsername = convertIdToName(allSlackUsers, trimmedGemReceiverRaw);
       // Encoded username who is getting the gem (ex. <@UW392NNSK>, but will display as @john.doe
@@ -193,9 +193,8 @@ controller.hears(':gem:','ambient',function(bot,message) {
       console.log('***************VARIABLES***************' + '\n' +
                   'Message Text: ' + JSON.stringify(messageText) + '\n' +
                   'Gem Giver ID: ' + gemGiverId + '\n' +
-                  'Gem Giver: ' + gemGiverEncoded + '\n' +
+                  'Gem Giver Encoded: ' + gemGiverEncoded + '\n' +
                   'Gem Giver Username: ' + gemGiverUsername + '\n' +
-                  'Gem Receiver Raw: ' + gemReceiverRaw + '\n' +
                   'Trimmed Gem Receiver Raw: ' + trimmedGemReceiverRaw + '\n' +
                   'Gem Receiver: ' + gemReceiver + '\n' +
                   'Gem Receiver Username: ' + gemReceiverUsername + '\n' +
