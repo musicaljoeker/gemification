@@ -125,29 +125,35 @@ controller.on('create_bot',function(bot,config) {
         if (err) {
           console.log(err);
         } else {
-          convo.say('I am a bot that has just joined your team');
-          convo.say('You must now /invite me to a channel so that I can be of use!');
-        }
-      });
+          convo.say('I am the gemification bot that has just joined your team');
+          convo.say('Please /invite me to your channel so that people can start giving gems!');
 
-      // Adding the created by user as an admin to the gemification
-      getSlackUsersWithoutMessage(bot, function(allSlackUsers){
-        var createdByUsername = convertIdToName(allSlackUsers, config.createdBy);
-        // Getting the database pool
-        DBPool.getConnection(function(err, connection){
-          if (err) throw err;
-          var createAdminUserQuery = 'INSERT INTO userGem (userId, username, isAdmin) VALUES (\'' + config.createdBy + '\', \'' + createdByUsername + '\', \'TRUE\')';
-          console.log('Create Admin User Query: ' + createAdminUserQuery);
-          connection.query(
-            createAdminUserQuery,
-            function(err, rows){
-            if (err) throw err;
-            // Done with connection
-            connection.release();
-            // Don't use connection here, it has been returned to the pool
-            bot.reply(message, 'You have been set as as an administrator.');
+          // Adding the created by user as an admin to the gemification
+          getSlackUsersWithoutMessage(bot, function(allSlackUsers){
+            var createdByUsername = convertIdToName(allSlackUsers, config.createdBy);
+            // Getting the database pool
+            DBPool.getConnection(function(err, connection){
+              if (err) throw err;
+              var createAdminUserQuery = 'INSERT INTO userGem (userId, username, isAdmin) VALUES (\'' + config.createdBy + '\', \'' + createdByUsername + '\', \'TRUE\')';
+              console.log('Create Admin User Query: ' + createAdminUserQuery);
+              connection.query(
+                createAdminUserQuery,
+                function(err, rows){
+                if (err) throw err;
+                // Done with connection
+                connection.release();
+                // Don't use connection here, it has been returned to the pool
+                bot.startPrivateConversation({user: config.createdBy},function(err,convo) {
+                  if (err) {
+                    console.log(err);
+                  } else {
+                    convo.say('Your user has been added to as an administrator to this program');
+                  }
+                });
+              });
+            });
           });
-        });
+        }
       });
     });
   }
