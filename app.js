@@ -126,9 +126,11 @@ function isEmptyObject(obj) {
 
 // Supply this will return information about the channel
 function getAllUsers(bot, message, id, callback){
-  console.log('Name: ' + bot.api.users.list({}, function(err, response) {
-    return callback(response.members, id);
-  }));
+  var name = '';
+  bot.api.users.list({}, function(err, response) {
+    name = callback(response.members, id);
+  });
+  console.log('Name: ' + name);
 }
 
 // Converts user ID to name
