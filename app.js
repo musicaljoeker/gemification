@@ -49,6 +49,41 @@ var controller = Botkit.slackbot({
   }
 );
 
+// Instantiating the Gemification database pool
+var DBPool = mysql.createPool({
+  host     : DBCredentials.HOST,
+  user     : DBCredentials.USERNAME,
+  password : DBCredentials.PASSWORD,
+  database : DBCredentials.DATABASE
+});
+
+// Supply this will return a list of members in JSON
+function getMembersInChannel(bot, message, callback){
+  bot.api.channels.info({channel: message.channel}, function(err, response) {
+    callback(response.channel.members);
+  });
+}
+
+// Check if the object you are passing in is empty
+function isEmptyObject(obj) {
+  return !Object.keys(obj).length;
+}
+
+// Gets all users in the Slack channel and calls the callback function
+function getSlackUsers(bot, message, callback){
+  bot.api.users.list({}, function(err, response) {
+    callback(response.members);
+  });
+}
+
+// Converts a Slack userId to a Slack username
+// Function takes in a JSON object of all Slack users and the Slack userId
+function convertIdToName(slackUsers, id){
+  return slackUsers.filter(function(user){
+    return user.id == id;
+  })[0].name
+}
+
 controller.setupWebserver(process.env.port,function(err,webserver) {
   controller.createWebhookEndpoints(controller.webserver);
 
@@ -88,6 +123,25 @@ controller.on('create_bot',function(bot,config) {
         }
       });
 
+      // Adding the created by user as an admin to the gemification
+      getSlackUsers(bot, message, function(allSlackUsers){
+        var createdByUsername = convertIdToName(allSlackUsers, config.createdBy);
+        // Getting the database pool
+        DBPool.getConnection(function(err, connection){
+          if (err) throw err;
+          var createAdminUserQuery = 'INSERT INTO userGem (userId, username, isAdmin) VALUES (\'' + config.createdBy '\', \'' + createdByUsername + '\', \'TRUE\')';
+          console.log('Create Admin User Query: ' + createAdminUserQuery);
+          connection.query(
+            createAdminUserQuery,
+            function(err, rows){
+            if (err) throw err;
+            // Done with connection
+            connection.release();
+            // Don't use connection here, it has been returned to the pool
+            bot.reply(message, 'You have been set as as an administrator.');
+          });
+        });
+      });
     });
   }
 
@@ -102,41 +156,6 @@ controller.on('rtm_close',function(bot) {
   console.log('** The RTM api just closed');
   // you may want to attempt to re-open
 });
-
-// Instantiating the Gemification database pool
-var DBPool = mysql.createPool({
-  host     : DBCredentials.HOST,
-  user     : DBCredentials.USERNAME,
-  password : DBCredentials.PASSWORD,
-  database : DBCredentials.DATABASE
-});
-
-// Supply this will return a list of members in JSON
-function getMembersInChannel(bot, message, callback){
-  bot.api.channels.info({channel: message.channel}, function(err, response) {
-    callback(response.channel.members);
-  });
-}
-
-// Check if the object you are passing in is empty
-function isEmptyObject(obj) {
-  return !Object.keys(obj).length;
-}
-
-// Gets all users in the Slack channel and calls the callback function
-function getSlackUsers(bot, message, callback){
-  bot.api.users.list({}, function(err, response) {
-    callback(response.members);
-  });
-}
-
-// Converts a Slack userId to a Slack username
-// Function takes in a JSON object of all Slack users and the Slack userId
-function convertIdToName(slackUsers, id){
-  return slackUsers.filter(function(user){
-    return user.id == id;
-  })[0].name
-}
 
 controller.storage.teams.all(function(err,teams) {
   if (err) {
