@@ -134,7 +134,7 @@ function getAllUsers(bot, message, id, callback){
 // Converts user ID to name
 function convertIDToName(id, bot, message){
     console.log('Name: ' + getAllUsers(bot, message, id, function(membersInChannel, id){
-      membersInChannel.filter(function(member){
+      return membersInChannel.filter(function(member){
         return member.id == id;
       })[0].name;
     }));
