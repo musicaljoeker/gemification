@@ -202,13 +202,9 @@ controller.hears(':gem:','ambient',function(bot,message) {
       var gemGiverId = message.user;
       // Person who gave the :gem:
       var gemGiverEncoded = '<@' + gemGiverId + '>';
-      // Username of the gem giver (ex. kerkhofj)
-      var gemGiverUsername = convertIdToName(allSlackUsers, gemGiverId);
       // Trimmed raw username who is getting the gem (ex. UW392NNSK)
       var gemReceiverIdTemp = String(messageText.match(/@([^\s]+)/g));
       var gemReceiverId = gemReceiverIdTemp.substring(1, gemReceiverIdTemp.length-1);
-      // Username of the gem receiver (ex. emily.albulushi)
-      var gemReceiverUsername = convertIdToName(allSlackUsers, gemReceiverId);
       // Encoded username who is getting the gem (ex. <@UW392NNSK>, but will display as @john.doe
       // in the Slack app)
       var gemReceiver = '<@' + gemReceiverId + '>';
@@ -224,10 +220,8 @@ controller.hears(':gem:','ambient',function(bot,message) {
                   'Message Text: ' + JSON.stringify(messageText) + '\n' +
                   'Gem Giver ID: ' + gemGiverId + '\n' +
                   'Gem Giver Encoded: ' + gemGiverEncoded + '\n' +
-                  'Gem Giver Username: ' + gemGiverUsername + '\n' +
                   'Gem Receiver ID: ' + gemReceiverId + '\n' +
                   'Gem Receiver Encoded: ' + gemReceiver + '\n' +
-                  'Gem Receiver Username: ' + gemReceiverUsername + '\n' +
                   'Reason: ' + reason
               );
 
@@ -246,7 +240,7 @@ controller.hears(':gem:','ambient',function(bot,message) {
       // their statement in the wrong order.
       var isGemReceiverInReason = (reason.indexOf(gemReceiverId) > -1);
       // Fifth, it checks to see if a user trying to give a gem to themselves.
-      var isSelfGivingGem = (gemGiverId == gemReceiver);
+      var isSelfGivingGem = (gemGiverId == gemReceiverId);
 
       // If none of these condition are met, the user typed a valid gem statment and program execution
       // can proceed. Valid gem statements are as following...
@@ -274,6 +268,13 @@ controller.hears(':gem:','ambient',function(bot,message) {
                   'You may only give gems to other people in this channel.');
       } else{
         // User typed a valid statement, we have valid data, proceed with database calls
+
+        //Getting the usernames for users involved in the gem statement
+        // Username of the gem giver (ex. kerkhofj)
+        var gemGiverUsername = convertIdToName(allSlackUsers, gemGiverId);
+        // Username of the gem receiver (ex. emily.albulushi)
+        var gemReceiverUsername = convertIdToName(allSlackUsers, gemReceiverId);
+
 
         // Getting the database pool
         DBPool.getConnection(function(err, connection){
