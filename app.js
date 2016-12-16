@@ -93,7 +93,6 @@ controller.on('create_bot',function(bot,config) {
 
 });
 
-
 // Handle events related to the websocket connection to Slack
 controller.on('rtm_open',function(bot) {
   console.log('** The RTM api just connected!');
@@ -123,13 +122,6 @@ function getMembersInChannel(bot, message, callback){
 function isEmptyObject(obj) {
   return !Object.keys(obj).length;
 }
-
-// Supply this will return information about the channel
-// function getAllUsers(bot, message, leaderboardUserIds, callback){
-//   bot.api.users.list({}, function(err, response) {
-//     callback(response.members, leaderboardUserIds);
-//   });
-// }
 
 // Gets all users in the Slack channel and calls the callback function
 function getSlackUsers(bot, message, callback){
@@ -176,11 +168,11 @@ controller.hears(':gem:','ambient',function(bot,message) {
       // Everything the user typed in the message
       var messageText = message.text;
       // Raw userId of the gem giver (ex. UW392NNSK)
-      var gemGiverRaw = message.user;
+      var gemGiverId = message.user;
       // Person who gave the :gem:
-      var gemGiver = '<@' + gemGiverRaw + '>';
+      var gemGiverEncoded = '<@' + gemGiverId + '>';
       // Username of the gem giver (ex. kerkhofj)
-      var gemGiverUsername = convertIdToName(allSlackUsers, gemGiverRaw);
+      var gemGiverUsername = convertIdToName(allSlackUsers, gemGiverId);
       // Raw username who is getting the gem (ex. @UW392NNSK>)
       var gemReceiverRaw = String(messageText.match(/@([^\s]+)/g));
       // Trimmed raw username who is getting the gem (ex. UW392NNSK)
@@ -200,8 +192,8 @@ controller.hears(':gem:','ambient',function(bot,message) {
       // Logging
       console.log('***************VARIABLES***************' + '\n' +
                   'Message Text: ' + JSON.stringify(messageText) + '\n' +
-                  'Gem Giver Raw: ' + gemGiverRaw + '\n' +
-                  'Gem Giver: ' + gemGiver + '\n' +
+                  'Gem Giver ID: ' + gemGiverId + '\n' +
+                  'Gem Giver: ' + gemGiverEncoded + '\n' +
                   'Gem Giver Username: ' + gemGiverUsername + '\n' +
                   'Gem Receiver Raw: ' + gemReceiverRaw + '\n' +
                   'Trimmed Gem Receiver Raw: ' + trimmedGemReceiverRaw + '\n' +
@@ -242,7 +234,7 @@ controller.hears(':gem:','ambient',function(bot,message) {
               );
       if (isReasonEmpty || isGemReceiverInvalid || isGemInReason || isGemReceiverInReason){
         // User typed an invalid statement, output error message
-        bot.reply(message, 'Sorry, ' + gemGiver + '. There was an error in your gem statement...\n' +
+        bot.reply(message, 'Sorry, ' + gemGiverEncoded + '. There was an error in your gem statement...\n' +
           'Please type your gem statement using a valid username like this:\n' +
           ':gem: [@username] for [reason]'
         );
@@ -257,7 +249,7 @@ controller.hears(':gem:','ambient',function(bot,message) {
         // Getting the database pool
         DBPool.getConnection(function(err, connection){
           if (err) throw err;
-          var giveGemQuery = 'CALL incrementGems(\'' + gemGiverRaw + '\', \'' + gemGiverUsername + '\', \'' + trimmedGemReceiverRaw + '\', \'' + gemReceiverUsername + '\', \'' + reason + '\');';
+          var giveGemQuery = 'CALL incrementGems(\'' + gemGiverId + '\', \'' + gemGiverUsername + '\', \'' + trimmedGemReceiverRaw + '\', \'' + gemReceiverUsername + '\', \'' + reason + '\');';
 
           connection.query(
             giveGemQuery,
