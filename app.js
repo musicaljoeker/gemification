@@ -309,19 +309,16 @@ controller.hears('leaderboard',['direct_mention','direct_message'],function(bot,
                 return member.id == leaderboardUserIds[j];
               })[0].name);
           }
-          console.log(JSON.stringify(leaderboardUsernames));
-        });
-
-
-        var leaderboardStr = 'Leaderboard:\n';
-        for(var i=0; i<rows.length; i++){
-          if(i==rows.length-1){
-            leaderboardStr += (i+1) + ".) <" + rows[i].username + "> " + rows[i].currentGems;
-          } else{
-            leaderboardStr += (i+1) + ".) <" + rows[i].username + "> " + rows[i].currentGems + "\n";
+          var leaderboardStr = 'Leaderboard:\n';
+          for(var i=0; i<rows.length; i++){
+            if(i==rows.length-1){
+              leaderboardStr += (i+1) + ".) <" + leaderboardUsernames[i] + "> " + rows[i].currentGems;
+            } else{
+              leaderboardStr += (i+1) + ".) <" + leaderboardUsernames[i] + "> " + rows[i].currentGems + "\n";
+            }
           }
-        }
-        bot.reply(message, leaderboardStr);
+          bot.reply(message, leaderboardStr);
+        });
       }
     });
   });
