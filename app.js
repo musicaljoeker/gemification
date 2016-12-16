@@ -173,15 +173,13 @@ controller.hears(':gem:','ambient',function(bot,message) {
       var gemGiverEncoded = '<@' + gemGiverId + '>';
       // Username of the gem giver (ex. kerkhofj)
       var gemGiverUsername = convertIdToName(allSlackUsers, gemGiverId);
-      // // Raw username who is getting the gem (ex. @UW392NNSK>)
-      // var gemReceiverRaw = String(messageText.match(/@([^\s]+)/g));
       // Trimmed raw username who is getting the gem (ex. UW392NNSK)
-      var trimmedGemReceiverRaw = String(messageText.match(/@([^\s]+)/g)).substring(1, String(messageText.match(/@([^\s]+)/g)).length-1);
+      var gemReceiverId = String(messageText.match(/@([^\s]+)/g)).substring(1, String(messageText.match(/@([^\s]+)/g)).length-1);
       // Username of the gem receiver (ex. emily.albulushi)
-      var gemReceiverUsername = convertIdToName(allSlackUsers, trimmedGemReceiverRaw);
+      var gemReceiverUsername = convertIdToName(allSlackUsers, gemReceiverId);
       // Encoded username who is getting the gem (ex. <@UW392NNSK>, but will display as @john.doe
       // in the Slack app)
-      var gemReceiver = '<@' + trimmedGemReceiverRaw + '>';
+      var gemReceiver = '<@' + gemReceiverId + '>';
       // Instantiating the reason variable
       var reason = '';
       // Checking if the user type a reason after the keyword 'for ', if not, do nothing
@@ -195,7 +193,7 @@ controller.hears(':gem:','ambient',function(bot,message) {
                   'Gem Giver ID: ' + gemGiverId + '\n' +
                   'Gem Giver Encoded: ' + gemGiverEncoded + '\n' +
                   'Gem Giver Username: ' + gemGiverUsername + '\n' +
-                  'Trimmed Gem Receiver Raw: ' + trimmedGemReceiverRaw + '\n' +
+                  'Gem Receiver ID: ' + gemReceiverId + '\n' +
                   'Gem Receiver: ' + gemReceiver + '\n' +
                   'Gem Receiver Username: ' + gemReceiverUsername + '\n' +
                   'Reason: ' + reason
@@ -208,13 +206,13 @@ controller.hears(':gem:','ambient',function(bot,message) {
       var isReasonEmpty = (reason == '');
       // Second, it checks to see if the member the user entered to give the gem TO is a valid username
       // in the channel.
-      var isGemReceiverInvalid = !(membersInChannel.indexOf(trimmedGemReceiverRaw) > -1);
+      var isGemReceiverInvalid = !(membersInChannel.indexOf(gemReceiverId) > -1);
       // Third, it checks if the :gem: is typed after the word 'for' meaning the user typed their
       // statement in the wrong order.
       var isGemInReason = (reason.indexOf(':gem:') > -1);
       // Fourth, it checks if the user typed in the message is after 'for' meaning the user typed
       // their statement in the wrong order.
-      var isGemReceiverInReason = (reason.indexOf(trimmedGemReceiverRaw) > -1);
+      var isGemReceiverInReason = (reason.indexOf(gemReceiverId) > -1);
       // Fifth, it checks to see if a user trying to give a gem to themselves.
       var isSelfGivingGem = (gemGiverId == gemReceiver);
 
@@ -248,7 +246,7 @@ controller.hears(':gem:','ambient',function(bot,message) {
         // Getting the database pool
         DBPool.getConnection(function(err, connection){
           if (err) throw err;
-          var giveGemQuery = 'CALL incrementGems(\'' + gemGiverId + '\', \'' + gemGiverUsername + '\', \'' + trimmedGemReceiverRaw + '\', \'' + gemReceiverUsername + '\', \'' + reason + '\');';
+          var giveGemQuery = 'CALL incrementGems(\'' + gemGiverId + '\', \'' + gemGiverUsername + '\', \'' + gemReceiverId + '\', \'' + gemReceiverUsername + '\', \'' + reason + '\');';
 
           connection.query(
             giveGemQuery,
