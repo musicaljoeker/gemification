@@ -174,7 +174,8 @@ controller.hears(':gem:','ambient',function(bot,message) {
       // Username of the gem giver (ex. kerkhofj)
       var gemGiverUsername = convertIdToName(allSlackUsers, gemGiverId);
       // Trimmed raw username who is getting the gem (ex. UW392NNSK)
-      var gemReceiverId = String(messageText.match(/@([^\s]+)/g)).substring(1, String(messageText.match(/@([^\s]+)/g)).length-1);
+      var gemReceiverIdTemp = String(messageText.match(/@([^\s]+)/g));
+      var gemReceiverId = gemReceiverIdTemp.substring(1, gemReceiverIdTemp.length-1);
       // Username of the gem receiver (ex. emily.albulushi)
       var gemReceiverUsername = convertIdToName(allSlackUsers, gemReceiverId);
       // Encoded username who is getting the gem (ex. <@UW392NNSK>, but will display as @john.doe
@@ -194,7 +195,7 @@ controller.hears(':gem:','ambient',function(bot,message) {
                   'Gem Giver Encoded: ' + gemGiverEncoded + '\n' +
                   'Gem Giver Username: ' + gemGiverUsername + '\n' +
                   'Gem Receiver ID: ' + gemReceiverId + '\n' +
-                  'Gem Receiver: ' + gemReceiver + '\n' +
+                  'Gem Receiver Encoded: ' + gemReceiver + '\n' +
                   'Gem Receiver Username: ' + gemReceiverUsername + '\n' +
                   'Reason: ' + reason
               );
@@ -247,7 +248,6 @@ controller.hears(':gem:','ambient',function(bot,message) {
         DBPool.getConnection(function(err, connection){
           if (err) throw err;
           var giveGemQuery = 'CALL incrementGems(\'' + gemGiverId + '\', \'' + gemGiverUsername + '\', \'' + gemReceiverId + '\', \'' + gemReceiverUsername + '\', \'' + reason + '\');';
-
           connection.query(
             giveGemQuery,
             function(err, rows){
@@ -255,7 +255,7 @@ controller.hears(':gem:','ambient',function(bot,message) {
             // Done with connection
             connection.release();
             // Don't use connection here, it has been returned to the pool
-            bot.reply(message, 'You have successfully given a gem to ' + gemReceiver + '!');
+            bot.reply(message, 'You gave a gem to ' + gemReceiver + '!');
           });
         });
       }
@@ -295,7 +295,7 @@ controller.hears('leaderboard',['direct_mention','direct_message'],function(bot,
       if(isEmptyObject(rows)){
         bot.reply(message, 'The leaderboard is empty. Try giving someone a gem!');
       } else{
-        // Parsing the leaderboard
+        // Parsing the leaderboard, looping thru everybody returned in the query
         var leaderboardStr = 'Leaderboard:\n';
         for(var i=0; i<rows.length; i++){
           if(i==rows.length-1){
