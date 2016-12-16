@@ -269,12 +269,15 @@ controller.hears(':gem:','ambient',function(bot,message) {
       } else{
         // User typed a valid statement, we have valid data, proceed with database calls
 
-        //Getting the usernames for users involved in the gem statement
+        // Getting the usernames for users involved in the gem statement
         // Username of the gem giver (ex. kerkhofj)
         var gemGiverUsername = convertIdToName(allSlackUsers, gemGiverId);
         // Username of the gem receiver (ex. emily.albulushi)
         var gemReceiverUsername = convertIdToName(allSlackUsers, gemReceiverId);
-
+        console.log('***************CONVERTED USERNAMES***************' + '\n' +
+                    'Gem Giver Username: ' + gemGiverUsername + '\n' +
+                    'Gem Receiver Username: ' + gemReceiverUsername
+                  );
 
         // Getting the database pool
         DBPool.getConnection(function(err, connection){
@@ -357,6 +360,7 @@ controller.hears('clear gems','direct_message',function(bot,message) {
       'SELECT isAdmin FROM userGem WHERE userId=\'' + message.user + '\';',
       function(err, rows){
       if (err) throw err;
+      console.log('isAdmin query response: ' + JSON.stringify(rows));
       if(rows[0]==true){
         // user is an admin and may proceed to clear the gem period.
         connection.query(
