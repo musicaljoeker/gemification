@@ -128,7 +128,7 @@ controller.on('create_bot',function(bot,config) {
           convo.say('I am the gemification bot that has just joined your team');
           convo.say('Please /invite me to your channel so that people can start giving gems!');
 
-          // Adding the created by user as an admin to the gemification
+          // Adding the user which installed gemification as an admin
           getSlackUsersWithoutMessage(bot, function(allSlackUsers){
             var createdByUsername = convertIdToName(allSlackUsers, config.createdBy);
             // Getting the database pool
@@ -157,7 +157,6 @@ controller.on('create_bot',function(bot,config) {
       });
     });
   }
-
 });
 
 // Handle events related to the websocket connection to Slack
@@ -349,19 +348,29 @@ controller.hears('leaderboard',['direct_mention','direct_message'],function(bot,
 // to 0 for all users.
 controller.hears('clear gems','direct_message',function(bot,message) {
   // Validates if the user typed is an admin
-  // *****STILL NEED TO BUILD ADMIN VALIDATION*****
 
   // Getting the database pool
   DBPool.getConnection(function(err, connection){
     if (err) throw err;
     connection.query(
-      'INSERT INTO gemPeriod VALUES()',
+      'SELECT isAdmin FROM userGem WHERE userId=\'' + message.user + '\';',
       function(err, rows){
       if (err) throw err;
-      // Done with connection
-      connection.release();
-      // Don't use connection here, it has been returned to the pool
-      bot.reply(message, 'The leaderboard was cleared successfully!');
+      if(rows[0]==true){
+        // user is an admin and may proceed to clear the gem period.
+        connection.query(
+          'INSERT INTO gemPeriod VALUES();',
+          function(err, rows){
+          if (err) throw err;
+          // Done with connection
+          connection.release();
+          // Don't use connection here, it has been returned to the pool
+          bot.reply(message, 'The leaderboard was cleared successfully. Now get out there and start earning yourself some gems! :gem:');
+        });
+      }else {
+        // user isn't an admin and needs to be put in their place.
+        bot.reply(message, 'Nice try, wise guy, but you aren\'t an admin. Only admins can reset the gem count. :angry:');
+      }
     });
   });
 });
