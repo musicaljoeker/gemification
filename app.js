@@ -255,12 +255,26 @@ controller.hears(':gem:','ambient',function(bot,message) {
                   'Is gem receiver in reason statement: ' + isGemReceiverInReason + '\n' +
                   'Is user giving themselves a gem: ' + isSelfGivingGem
               );
+
+
       if (isReasonEmpty || isGemReceiverInvalid || isGemInReason || isGemReceiverInReason){
         // User typed an invalid statement, output error message
-        bot.reply(message, 'Sorry, ' + gemGiverEncoded + '. There was an error in your gem statement...\n' +
-          'Please type your gem statement using a valid username like this:\n' +
-          ':gem: [@username] for [reason]'
-        );
+        var errorMessage = 'Sorry, ' + gemGiverEncoded + '. There was an error in your gem statement.\n You statement was invalid for the following reasons...\n';
+        if(isReasonEmpty){
+          errorMessage += '- didn\'t include a reason statement\n';
+        }
+        if(isGemReceiverInvalid){
+          errorMessage += '- didn\'t type a valid gem receiver\n';
+        }
+        if(isGemInReason){
+          errorMessage += '- typed gems in your reason statement\n';
+        }
+        if(isGemReceiverInReason){
+          errorMessage += '- don\'t type users in your reason statement\n';
+        }
+        errorMessage += 'Please type your gem statement using a valid username like this:\n' +
+        ':gem: [@username] for [reason]';
+        bot.reply(message, errorMessage);
       }
       // Checks if the the someone is trying to give a gem to themselves
       else if(isSelfGivingGem){
@@ -328,7 +342,7 @@ controller.hears('leaderboard',['direct_mention','direct_message'],function(bot,
       connection.release();
       // Don't use connection here, it has been returned to the pool
       if(isEmptyObject(rows)){
-        bot.reply(message, 'The leaderboard is empty. Try giving someone a gem!');
+        bot.reply(message, 'The leaderboard is empty. Try giving someone a :gem:!');
       } else{
         // Parsing the leaderboard, looping thru everybody returned in the query
         var leaderboardStr = 'Leaderboard:\n';
@@ -352,7 +366,6 @@ controller.hears('leaderboard',['direct_mention','direct_message'],function(bot,
 // to 0 for all users.
 controller.hears('clear gems','direct_message',function(bot,message) {
   // Validates if the user typed is an admin
-
   // Getting the database pool
   DBPool.getConnection(function(err, connection){
     if (err) throw err;
@@ -360,7 +373,6 @@ controller.hears('clear gems','direct_message',function(bot,message) {
       'SELECT isAdmin FROM userGem WHERE userId=\'' + message.user + '\';',
       function(err, rows){
       if (err) throw err;
-      console.log('isAdmin query response: ' + JSON.stringify(rows));
       if(rows[0].isAdmin==1){
         // user is an admin and may proceed to clear the gem period.
         connection.query(
