@@ -125,11 +125,11 @@ function isEmptyObject(obj) {
 }
 
 // Supply this will return information about the channel
-function getAllUsers(bot, message, leaderboardUserIds, callback){
-  bot.api.users.list({}, function(err, response) {
-    callback(response.members, leaderboardUserIds);
-  });
-}
+// function getAllUsers(bot, message, leaderboardUserIds, callback){
+//   bot.api.users.list({}, function(err, response) {
+//     callback(response.members, leaderboardUserIds);
+//   });
+// }
 
 // Gets all users in the Slack channel and calls the callback function
 function getSlackUsers(bot, message, callback){
@@ -141,19 +141,10 @@ function getSlackUsers(bot, message, callback){
 // Converts a Slack userId to a Slack username
 // Function takes in a JSON object of all Slack users and the Slack userId
 function convertIDToName(slackUsers, id){
-  slackUsers.filter(function(user){
+  return slackUsers.filter(function(user){
     return user.id == id;
   })[0].name
 }
-
-// Converts user ID to name
-// function convertIDToName(id, bot, message){
-//     getAllUsers(bot, message, id, function(membersInChannel, id){
-//       return membersInChannel.filter(function(member){
-//         return member.id == id;
-//       })[0].name;
-//     });
-// }
 
 controller.storage.teams.all(function(err,teams) {
   if (err) {
