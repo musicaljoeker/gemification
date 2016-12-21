@@ -168,15 +168,15 @@ controller.on('rtm_open',function(bot) {
 controller.on('rtm_close',function(bot) {
   console.log('** The RTM api just closed... attempting to reopen RTM connection');
   // you may want to attempt to re-open
-  if (_bots[bot.config.token]) {
-    // already online! do nothing.
-  } else {
-    bot.startRTM(function(err) {
-      if (!err) {
-        trackBot(bot);
-      }
-    });
-  }
+  // if (_bots[bot.config.token]) {
+  //   // already online! do nothing.
+  // } else {
+  //   bot.startRTM(function(err) {
+  //     if (!err) {
+  //       trackBot(bot);
+  //     }
+  //   });
+  // }
 });
 
 controller.storage.teams.all(function(err,teams) {
