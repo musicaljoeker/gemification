@@ -159,24 +159,14 @@ controller.on('create_bot',function(bot,config) {
   }
 });
 
-
 // Handle events related to the websocket connection to Slack
 controller.on('rtm_open',function(bot) {
   console.log('** The RTM api just connected!');
 });
 
 controller.on('rtm_close',function(bot) {
-  console.log('** The RTM api just closed... attempting to reopen RTM connection');
+  console.log('** The RTM api just closed');
   // you may want to attempt to re-open
-  // if (_bots[bot.config.token]) {
-  //   // already online! do nothing.
-  // } else {
-  //   bot.startRTM(function(err) {
-  //     if (!err) {
-  //       trackBot(bot);
-  //     }
-  //   });
-  // }
 });
 
 controller.storage.teams.all(function(err,teams) {
