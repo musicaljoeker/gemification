@@ -175,7 +175,7 @@ controller.on('rtm_close',function(bot) {
       if (!err) {
         trackBot(bot);
       }
-    }
+    });
   }
 });
 
