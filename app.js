@@ -159,35 +159,25 @@ controller.on('create_bot',function(bot,config) {
   }
 });
 
-// function to start the gemification bot
-function start_rtm() {
-  bot.startRTM(function(err,bot,payload) {
-    if (err) {
-      console.log('** Failed to start RTM');
-      return setTimeout(start_rtm, 60000);
-    }
-    console.log('** The RTM api just connected!');
-  });
-}
 
-// on the RTM close, attempt to reopen the connection so that the bot doesn't die
-controller.on('rtm_close', function(bot, err) {
-  console.log('** The RTM api just closed... Attempting to reopen.');
-  start_rtm();
+// Handle events related to the websocket connection to Slack
+controller.on('rtm_open',function(bot) {
+  console.log('** The RTM api just connected!');
 });
 
-// starting the gemification bot
-start_rtm();
-
-// // Handle events related to the websocket connection to Slack
-// controller.on('rtm_open',function(bot) {
-//   console.log('** The RTM api just connected!');
-// });
-//
-// controller.on('rtm_close',function(bot) {
-//   console.log('** The RTM api just closed');
-//   // you may want to attempt to re-open
-// });
+controller.on('rtm_close',function(bot) {
+  console.log('** The RTM api just closed... attempting to reopen RTM connection');
+  // you may want to attempt to re-open
+  if (_bots[bot.config.token]) {
+    // already online! do nothing.
+  } else {
+    bot.startRTM(function(err) {
+      if (!err) {
+        trackBot(bot);
+      }
+    }
+  }
+});
 
 controller.storage.teams.all(function(err,teams) {
   if (err) {
