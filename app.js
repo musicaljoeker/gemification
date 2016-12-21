@@ -167,7 +167,6 @@ function start_rtm() {
       return setTimeout(start_rtm, 60000);
     }
     console.log('** The RTM api just connected!');
-    });
   });
 }
 
