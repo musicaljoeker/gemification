@@ -404,7 +404,8 @@ controller.hears('clear gems','direct_message',function(bot,message) {
 });
 
 controller.hears('add admin', 'direct_message', function(bot, message){
-  convo.ask({
+  bot.startConversation(message, function(err, convo) {
+    convo.ask({
         attachments:[
             {
                 title: 'Do you want to proceed?',
@@ -449,4 +450,5 @@ controller.hears('add admin', 'direct_message', function(bot, message){
             }
         }
     ]);
+  });
 });
