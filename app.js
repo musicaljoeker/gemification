@@ -39,6 +39,7 @@ if (!process.env.clientId || !process.env.clientSecret || !process.env.port || !
 
 var controller = Botkit.slackbot({
   json_file_store: './db_slackbutton_bot/',
+  interactive_replies: true
   // rtm_receive_messages: false, // disable rtm_receive_messages if you enable events api
 }).configureSlackApp(
   {
@@ -401,3 +402,5 @@ controller.hears('clear gems','direct_message',function(bot,message) {
     });
   });
 });
+
+controller.hears('')
