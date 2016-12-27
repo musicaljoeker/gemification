@@ -402,5 +402,3 @@ controller.hears('clear gems','direct_message',function(bot,message) {
     });
   });
 });
-
-controller.hears('')
