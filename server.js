@@ -12,7 +12,7 @@ var httpsCredentials = {
 };
 
 var httpServer = http.createServer(app);
-var httpsServer = https.createServer(httpsCredentials, app);
+var httpsServer = https.createServer(credentials, app);
 
 app.listen(httpPort, function(){
   console.log('HTTP server running on port ' +  httpPort);
@@ -20,4 +20,9 @@ app.listen(httpPort, function(){
 
 app.listen(httpsPort, function(){
   console.log('HTTPS server running on port ' +  httpsPort);
+});
+
+app.get('/', function(req, res){
+  res.header('Content-type', 'text/html');
+  return res.end('<h1>Hello, Secure World!</h1>');
 });
