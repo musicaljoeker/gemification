@@ -12,7 +12,7 @@ var httpsCredentials = {
 };
 
 var httpServer = http.createServer(app);
-var httpsServer = https.createServer(credentials, app);
+var httpsServer = https.createServer(httpsCredentials, app);
 
 app.listen(httpPort, function(){
   console.log('HTTP server running on port ' +  httpPort);
