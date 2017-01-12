@@ -11,7 +11,7 @@ var httpsCredentials = {
   ca: fs.readFileSync('./ssl/StarMIO-chain.pem', 'utf8')
 };
 
-var httpServer = http.createServer(app);
+// var httpServer = http.createServer(app);
 var httpsServer = https.createServer(httpsCredentials, app);
 
 app.listen(httpPort, function(){
