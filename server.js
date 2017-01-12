@@ -1,11 +1,23 @@
 var express = require('express');
+var http = require('http');
+var https = require('https');
+var fs = require('fs');
 var app = express();
-var port = 80;
+var httpPort = 80;
+var httpsPort = 443;
+var httpsCredentials = {
+  key: fs.readFileSync('./ssl/StarMIO.key', 'utf8'),
+  cert: fs.readFileSync('./ssl/StarMIO-cert.pem', 'utf8'),
+  ca: fs.readFileSync('./ssl/StarMIO-chain.pem', 'utf8')
+};
 
-app.get('/', function (req, res) {
-  res.send('Hello World');
+var httpServer = http.createServer(app);
+var httpsServer = https.createServer(credentials, app);
+
+app.listen(httpPort, function(){
+  console.log('HTTP server running on port ' +  httpPort);
 });
 
-app.listen(port, function(){
-  console.log('Example server running on port ' +  port);
+app.listen(httpsPort, function(){
+  console.log('HTTPS server running on port ' +  httpsPort);
 });
