@@ -92,6 +92,27 @@ function convertIdToName(slackUsers, id){
   })[0].name
 }
 
+// This function checks if the message that was typed by the user is an admin or not.
+// The callback function in this method accepts a boolean value telling if the user is
+// an admin or not.
+function checkIsAdmin(bot, message, callback){
+  DBPool.getConnection(function(err, connection){
+    if (err) throw err;
+    connection.query(
+      'SELECT isAdmin FROM userGem WHERE userId=\'' + message.user + '\';',
+      function(err, rows){
+      if (err) throw err;
+      if(rows[0].isAdmin==1){
+        // user is an admin and may proceed to clear the gem period.
+        callback(true);
+      }else {
+        // user isn't an admin and needs to be put in their place.
+        callback(false);
+      }
+    });
+  });
+}
+
 controller.setupWebserver(process.env.port,function(err,webserver) {
   controller.createWebhookEndpoints(controller.webserver);
   controller.createHomepageEndpoint(controller.webserver);
@@ -393,24 +414,6 @@ controller.hears('leaderboard',['direct_mention','direct_message'],function(bot,
   });
 });
 
-function checkIsAdmin(bot, message, callback){
-  DBPool.getConnection(function(err, connection){
-    if (err) throw err;
-    connection.query(
-      'SELECT isAdmin FROM userGem WHERE userId=\'' + message.user + '\';',
-      function(err, rows){
-      if (err) throw err;
-      if(rows[0].isAdmin==1){
-        // user is an admin and may proceed to clear the gem period.
-        callback(true);
-      }else {
-        // user isn't an admin and needs to be put in their place.
-        callback(false);
-      }
-    });
-  });
-}
-
 // This function listens for a direct message from the admin to clear the leaderboard.
 // First, it checks if the user is an admin and if not, spits out an error message
 // If the user is an admin, then it will submit a query to the database adding a row
@@ -419,7 +422,7 @@ function checkIsAdmin(bot, message, callback){
 controller.hears('clear gems','direct_message',function(bot,message) {
   // Validates if the user typed is an admin
   // Getting the database pool
-  var success = checkIsAdmin(bot, message, function(isAdmin){
+  checkIsAdmin(bot, message, function(isAdmin){
     if(isAdmin){
       DBPool.getConnection(function(err, connection){
         if (err) throw err;
@@ -440,36 +443,21 @@ controller.hears('clear gems','direct_message',function(bot,message) {
       bot.reply(message, 'Nice try, wise guy, but you aren\'t an admin. Only admins can reset the gem count. :angry:');
     }
   });
-  // DBPool.getConnection(function(err, connection){
-  //   if (err) throw err;
-  //   connection.query(
-  //     'SELECT isAdmin FROM userGem WHERE userId=\'' + message.user + '\';',
-  //     function(err, rows){
-  //     if (err) throw err;
-  //     if(rows[0].isAdmin==1){
-  //       // user is an admin and may proceed to clear the gem period.
-  //       connection.query(
-  //         'INSERT INTO gemPeriod VALUES();',
-  //         function(err, rows){
-  //         if (err) throw err;
-  //         // Done with connection
-  //         connection.release();
-  //         // Don't use connection here, it has been returned to the pool
-  //         bot.reply(message, 'The leaderboard was cleared successfully. Now get out there and start earning yourself some gems! :gem:');
-  //       });
-  //     }else {
-  //       // user isn't an admin and needs to be put in their place.
-  //       bot.reply(message, 'Nice try, wise guy, but you aren\'t an admin. Only admins can reset the gem count. :angry:');
-  //     }
-  //   });
-  // });
 });
 
 controller.hears('add admin', 'direct_message', function(bot, message){
-  bot.startConversation(message, function(err, convo) {
-    convo.ask('Who would you like to add as an admin?', function(response, convo){
-      convo.say('Cool, you said: ' + response.text);
-      convo.next();
-    });
+  checkIsAdmin(bot, message, function(isAdmin){
+    if(isAdmin){
+      // The user who typed the message is an admin
+      bot.startConversation(message, function(err, convo) {
+        convo.ask('Who would you like to add as an admin?', function(response, convo){
+          convo.say('Cool, you said: ' + response.text);
+          convo.next();
+        });
+      });
+    } else{
+      // The user who typed the message isn't an admin
+      bot.reply('Nice try, wise guy, but you aren\'t an admin. Only admins can add new admins. :angry:');
+    }
   });
 });
