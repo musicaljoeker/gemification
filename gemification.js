@@ -393,7 +393,7 @@ controller.hears('leaderboard',['direct_mention','direct_message'],function(bot,
   });
 });
 
-function isAdmin(bot, message, callback){
+function checkIsAdmin(bot, message, callback){
   DBPool.getConnection(function(err, connection){
     if (err) throw err;
     connection.query(
@@ -402,11 +402,10 @@ function isAdmin(bot, message, callback){
       if (err) throw err;
       if(rows[0].isAdmin==1){
         // user is an admin and may proceed to clear the gem period.
-        callback();
-        return true;
+        callback(true);
       }else {
         // user isn't an admin and needs to be put in their place.
-        return false;
+        callback(false);
       }
     });
   });
@@ -420,26 +419,27 @@ function isAdmin(bot, message, callback){
 controller.hears('clear gems','direct_message',function(bot,message) {
   // Validates if the user typed is an admin
   // Getting the database pool
-  var success = isAdmin(bot, message, function(){
-    DBPool.getConnection(function(err, connection){
-      if (err) throw err;
-      connection.query(
-        'INSERT INTO gemPeriod VALUES();',
-        function(err, rows){
+  var success = checkIsAdmin(bot, message, function(isAdmin){
+    if(isAdmin){
+      DBPool.getConnection(function(err, connection){
         if (err) throw err;
-        // Done with connection
-        connection.release();
-        // Don't use connection here, it has been returned to the pool
+        connection.query(
+          'INSERT INTO gemPeriod VALUES();',
+          function(err, rows){
+          if (err) throw err;
+          // Done with connection
+          connection.release();
+          // Don't use connection here, it has been returned to the pool
+
+          // The leaderboard was cleared successfully
+          bot.reply(message, 'The leaderboard was cleared successfully. Now get out there and start earning yourself some gems! :gem:');
+        });
       });
-    });
+    } else{
+      // The user wasn't an admin
+      bot.reply(message, 'Nice try, wise guy, but you aren\'t an admin. Only admins can reset the gem count. :angry:');
+    }
   });
-  if(success){
-    // The leaderboard was cleared successfully
-    bot.reply(message, 'The leaderboard was cleared successfully. Now get out there and start earning yourself some gems! :gem:');
-  } else{
-    // The user wasn't an admin
-    bot.reply(message, 'Nice try, wise guy, but you aren\'t an admin. Only admins can reset the gem count. :angry:');
-  }
   // DBPool.getConnection(function(err, connection){
   //   if (err) throw err;
   //   connection.query(
