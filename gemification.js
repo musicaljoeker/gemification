@@ -285,7 +285,7 @@ controller.hears(':gem:','ambient',function(bot,message) {
         }
         errorMessage += 'Please type your gem statement using a valid username like this:\n' +
         ':gem: [@username] for [reason]';
-        bot.startPrivateConversation({user: gemGiverEncoded},function(err,convo) {
+        bot.startPrivateConversation({user: gemGiverId},function(err,convo) {
           if (err) {
             console.log(err);
           } else {
