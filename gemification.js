@@ -297,6 +297,7 @@ controller.hears(':gem:','ambient',function(bot,message) {
       }
       // Checks if the the someone is trying to give a gem to themselves
       else if(isSelfGivingGem){
+        // The bot private messages the gem giver and explain their error
         bot.startPrivateConversation({user: gemGiverId},function(err,convo) {
           if (err) {
             console.log(err);
@@ -305,9 +306,6 @@ controller.hears(':gem:','ambient',function(bot,message) {
                       'You may only give gems to other people in this channel.');
           }
         });
-
-        // bot.reply(message, 'Nice try, jackwagon. You can\'t give a gem to yourself. ' +
-        //           'You may only give gems to other people in this channel.');
       } else{
         // User typed a valid statement, we have valid data, proceed with database calls
 
@@ -332,7 +330,16 @@ controller.hears(':gem:','ambient',function(bot,message) {
             // Done with connection
             connection.release();
             // Don't use connection here, it has been returned to the pool
-            bot.reply(message, gemGiverUsername + ', you gave a gem to ' + gemReceiverUsername + '!');
+
+            // The bot private messages the gem giver and says their gem transaction was successful
+            bot.startPrivateConversation({user: gemGiverId},function(err,convo) {
+              if (err) {
+                console.log(err);
+              } else {
+                convo.say(gemGiverUsername + ', you gave a gem to ' + gemReceiverUsername + '!'));
+              }
+            });
+            // bot.reply(message, gemGiverUsername + ', you gave a gem to ' + gemReceiverUsername + '!');
           });
         });
       }
