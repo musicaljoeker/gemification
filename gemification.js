@@ -421,13 +421,16 @@ controller.hears('clear gems','direct_message',function(bot,message) {
   // Validates if the user typed is an admin
   // Getting the database pool
   var success = isAdmin(bot, message, function(){
-    connection.query(
-      'INSERT INTO gemPeriod VALUES();',
-      function(err, rows){
+    DBPool.getConnection(function(err, connection){
       if (err) throw err;
-      // Done with connection
-      connection.release();
-      // Don't use connection here, it has been returned to the pool
+      connection.query(
+        'INSERT INTO gemPeriod VALUES();',
+        function(err, rows){
+        if (err) throw err;
+        // Done with connection
+        connection.release();
+        // Don't use connection here, it has been returned to the pool
+      });
     });
   });
   if(success){
