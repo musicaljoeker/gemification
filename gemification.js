@@ -339,7 +339,6 @@ controller.hears(':gem:','ambient',function(bot,message) {
                 convo.say(gemGiverUsername + ', you gave a gem to ' + gemReceiverUsername + '!');
               }
             });
-            // bot.reply(message, gemGiverUsername + ', you gave a gem to ' + gemReceiverUsername + '!');
           });
         });
       }
@@ -429,50 +428,9 @@ controller.hears('clear gems','direct_message',function(bot,message) {
 
 controller.hears('add admin', 'direct_message', function(bot, message){
   bot.startConversation(message, function(err, convo) {
-    convo.ask({
-        attachments:[
-            {
-                title: 'Do you want to proceed?',
-                callback_id: '123',
-                attachment_type: 'default',
-                actions: [
-                    {
-                        "name":"yes",
-                        "text": "Yes",
-                        "value": "yes",
-                        "type": "button",
-                    },
-                    {
-                        "name":"no",
-                        "text": "No",
-                        "value": "no",
-                        "type": "button",
-                    }
-                ]
-            }
-        ]
-    },[
-        {
-            pattern: "yes",
-            callback: function(reply, convo) {
-                convo.say('FABULOUS!');
-                convo.next();
-                // do something awesome here.
-            }
-        },
-        {
-            pattern: "no",
-            callback: function(reply, convo) {
-                convo.say('Too bad');
-                convo.next();
-            }
-        },
-        {
-            default: true,
-            callback: function(reply, convo) {
-                // do nothing
-            }
-        }
-    ]);
+    convo.ask('Who would you like to add as an admin?', function(response, convo){
+      convo.say('Cool, you said: ' + response.text);
+      convo.next();
+    });
   });
 });
