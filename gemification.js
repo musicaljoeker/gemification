@@ -285,6 +285,8 @@ controller.hears(':gem:','ambient',function(bot,message) {
         }
         errorMessage += 'Please type your gem statement using a valid username like this:\n' +
         ':gem: [@username] for [reason]';
+
+        // The bot private messages the gem giver and explain their error
         bot.startPrivateConversation({user: gemGiverId},function(err,convo) {
           if (err) {
             console.log(err);
@@ -292,12 +294,20 @@ controller.hears(':gem:','ambient',function(bot,message) {
             convo.say(errorMessage);
           }
         });
-        // bot.reply(message, errorMessage);
       }
       // Checks if the the someone is trying to give a gem to themselves
       else if(isSelfGivingGem){
-        bot.reply(message, 'Nice try, jackwagon. You can\'t give a gem to yourself. ' +
-                  'You may only give gems to other people in this channel.');
+        bot.startPrivateConversation({user: gemGiverId},function(err,convo) {
+          if (err) {
+            console.log(err);
+          } else {
+            convo.say('Nice try, jackwagon. You can\'t give a gem to yourself. ' +
+                      'You may only give gems to other people in this channel.');
+          }
+        });
+
+        // bot.reply(message, 'Nice try, jackwagon. You can\'t give a gem to yourself. ' +
+        //           'You may only give gems to other people in this channel.');
       } else{
         // User typed a valid statement, we have valid data, proceed with database calls
 
