@@ -393,14 +393,7 @@ controller.hears('leaderboard',['direct_mention','direct_message'],function(bot,
   });
 });
 
-// This function listens for a direct message from the admin to clear the leaderboard.
-// First, it checks if the user is an admin and if not, spits out an error message
-// If the user is an admin, then it will submit a query to the database adding a row
-// to the gemPeriod table and firing a trigger in the database to set all currentGems
-// to 0 for all users.
-controller.hears('clear gems','direct_message',function(bot,message) {
-  // Validates if the user typed is an admin
-  // Getting the database pool
+function isAdmin(bot, message, callback){
   DBPool.getConnection(function(err, connection){
     if (err) throw err;
     connection.query(
@@ -409,21 +402,64 @@ controller.hears('clear gems','direct_message',function(bot,message) {
       if (err) throw err;
       if(rows[0].isAdmin==1){
         // user is an admin and may proceed to clear the gem period.
-        connection.query(
-          'INSERT INTO gemPeriod VALUES();',
-          function(err, rows){
-          if (err) throw err;
-          // Done with connection
-          connection.release();
-          // Don't use connection here, it has been returned to the pool
-          bot.reply(message, 'The leaderboard was cleared successfully. Now get out there and start earning yourself some gems! :gem:');
-        });
+        callback();
+        return true;
       }else {
         // user isn't an admin and needs to be put in their place.
-        bot.reply(message, 'Nice try, wise guy, but you aren\'t an admin. Only admins can reset the gem count. :angry:');
+        return false;
       }
     });
   });
+}
+
+// This function listens for a direct message from the admin to clear the leaderboard.
+// First, it checks if the user is an admin and if not, spits out an error message
+// If the user is an admin, then it will submit a query to the database adding a row
+// to the gemPeriod table and firing a trigger in the database to set all currentGems
+// to 0 for all users.
+controller.hears('clear gems','direct_message',function(bot,message) {
+  // Validates if the user typed is an admin
+  // Getting the database pool
+  var success = isAdmin(bot, message, function(){
+    connection.query(
+      'INSERT INTO gemPeriod VALUES();',
+      function(err, rows){
+      if (err) throw err;
+      // Done with connection
+      connection.release();
+      // Don't use connection here, it has been returned to the pool
+    });
+  });
+  if(success){
+    // The leaderboard was cleared successfully
+    bot.reply(message, 'The leaderboard was cleared successfully. Now get out there and start earning yourself some gems! :gem:');
+  } else{
+    // The user wasn't an admin
+    bot.reply(message, 'Nice try, wise guy, but you aren\'t an admin. Only admins can reset the gem count. :angry:');
+  }
+  // DBPool.getConnection(function(err, connection){
+  //   if (err) throw err;
+  //   connection.query(
+  //     'SELECT isAdmin FROM userGem WHERE userId=\'' + message.user + '\';',
+  //     function(err, rows){
+  //     if (err) throw err;
+  //     if(rows[0].isAdmin==1){
+  //       // user is an admin and may proceed to clear the gem period.
+  //       connection.query(
+  //         'INSERT INTO gemPeriod VALUES();',
+  //         function(err, rows){
+  //         if (err) throw err;
+  //         // Done with connection
+  //         connection.release();
+  //         // Don't use connection here, it has been returned to the pool
+  //         bot.reply(message, 'The leaderboard was cleared successfully. Now get out there and start earning yourself some gems! :gem:');
+  //       });
+  //     }else {
+  //       // user isn't an admin and needs to be put in their place.
+  //       bot.reply(message, 'Nice try, wise guy, but you aren\'t an admin. Only admins can reset the gem count. :angry:');
+  //     }
+  //   });
+  // });
 });
 
 controller.hears('add admin', 'direct_message', function(bot, message){
