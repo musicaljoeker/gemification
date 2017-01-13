@@ -457,7 +457,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
       });
     } else{
       // The user who typed the message isn't an admin
-      bot.reply('Nice try, wise guy, but you aren\'t an admin. Only admins can add new admins. :angry:');
+      bot.reply(message, 'Nice try, wise guy, but you aren\'t an admin. Only admins can add new admins. :angry:');
     }
   });
 });
