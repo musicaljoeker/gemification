@@ -285,7 +285,14 @@ controller.hears(':gem:','ambient',function(bot,message) {
         }
         errorMessage += 'Please type your gem statement using a valid username like this:\n' +
         ':gem: [@username] for [reason]';
-        bot.reply(message, errorMessage);
+        bot.startPrivateConversation({user: gemGiverEncoded},function(err,convo) {
+          if (err) {
+            console.log(err);
+          } else {
+            convo.say(errorMessage);
+          }
+        });
+        // bot.reply(message, errorMessage);
       }
       // Checks if the the someone is trying to give a gem to themselves
       else if(isSelfGivingGem){
