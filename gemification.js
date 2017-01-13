@@ -336,7 +336,7 @@ controller.hears(':gem:','ambient',function(bot,message) {
               if (err) {
                 console.log(err);
               } else {
-                convo.say(gemGiverUsername + ', you gave a gem to ' + gemReceiverUsername + '!'));
+                convo.say(gemGiverUsername + ', you gave a gem to ' + gemReceiverUsername + '!');
               }
             });
             // bot.reply(message, gemGiverUsername + ', you gave a gem to ' + gemReceiverUsername + '!');
