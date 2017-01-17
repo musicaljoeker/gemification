@@ -555,7 +555,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                           DBPool.getConnection(function(err, connection){
                             if (err) throw err;
                             connection.query(
-                              'UPDATE isAdmin FROM userGem WHERE userId=\'' + newAdminId + '\';',
+                              'UPDATE userGem SET isAdmin=\'1\' WHERE userId=\'' + newAdminId + '\';',
                               function(err, rows){
                               if (err) throw err;
                               convo.say(newAdminName + ' was updated as an admin.');
