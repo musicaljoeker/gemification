@@ -498,7 +498,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                console.log('newAdmin: ' + newAdmin);
                console.log('isValidUsername: ' + isValidUsername);
              });
-           });
+           }
           }
         ]);
       });
