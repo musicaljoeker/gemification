@@ -550,6 +550,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                           // The user that was entered is not an admin, and should be set as an admin
 
                           // Validate the what is about to happen with the user
+                          convo.say("we are in the update section.");
                           convo.ask({
                             attachments:[
                               {
