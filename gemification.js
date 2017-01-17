@@ -124,7 +124,7 @@ function checkIfUserExists(id, callback){
       'SELECT id FROM userGem WHERE userId=\'' + id + '\';',
       function(err, rows){
       if (err) throw err;
-      if(rows[0].id > -1){
+      if(rows[0] != null){
         // user exists
         callback(true);
       }else {
