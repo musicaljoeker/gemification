@@ -58,6 +58,8 @@ var DBPool = mysql.createPool({
   database : DBCredentials.DATABASE
 });
 
+/*~~~~~~~~~~~~~~~~~~~~Begin helper functions~~~~~~~~~~~~~~~~~~~~*/
+
 // Supply this will return a list of members in JSON
 function getMembersInChannel(bot, message, callback){
   bot.api.channels.info({channel: message.channel}, function(err, response) {
@@ -170,6 +172,8 @@ function findUserById(allSlackUsers, id){
   }
   return isFound;
 }
+
+/*~~~~~~~~~~~~~~~~~~~~End helper functions~~~~~~~~~~~~~~~~~~~~*/
 
 controller.setupWebserver(process.env.port,function(err,webserver) {
   controller.createWebhookEndpoints(controller.webserver);
@@ -619,7 +623,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                         attachments:[
                           {
                             title: 'Are you sure you want to set ' + newAdmin + ' as an admin?',
-                            callback_id: '1',
+                            callback_id: '2',
                             attachment_type: 'default',
                             actions: [
                               {
