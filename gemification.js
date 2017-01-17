@@ -114,6 +114,20 @@ function checkIsAdmin(bot, message, callback){
   });
 }
 
+// This little function takes a list of all Slack users in the channel and a user id
+// and tells you if user id entered is a valid user in the Slack channel or not.
+// A boolean value is returned.
+function findUserById(allSlackUsers, id){
+  var isFound = false;
+  for(var i=0; i<allSlackUsers.length; i++){
+    if(allSlackUsers[i].id == id){
+      isFound = true;
+      break;
+    }
+  }
+  return isFound;
+}
+
 controller.setupWebserver(process.env.port,function(err,webserver) {
   controller.createWebhookEndpoints(controller.webserver);
   controller.createHomepageEndpoint(controller.webserver);
@@ -445,17 +459,6 @@ controller.hears('clear gems','direct_message',function(bot,message) {
   });
 });
 
-function findUserById(allSlackUsers, id){
-  var isFound = false;
-  for(var i=0; i<allSlackUsers.length; i++){
-    if(allSlackUsers[i].id == id){
-      isFound = true;
-      break;
-    }
-  }
-  return isFound;
-}
-
 // This function listens for the direct message command 'add admin' to add an admin
 // to the database. If the user is in the database already, the user is bumped up to admin
 // role. If the user isn't found in the database, the user is added as an admin. Only
@@ -472,13 +475,18 @@ controller.hears('add admin', 'direct_message', function(bot, message){
             var newAdminId = newAdminTemp.substring(1, newAdminTemp.length-1);
             var newAdmin = '<@' + newAdminId + '>';
             var isValidUsername = findUserById(allSlackUsers, newAdminId);
+            if (!isValidUsername){
+              convo.say('The username you entered isn\'t valid.');
+              convo.repeat();
+              convo.next();
+            } else{
+              convo.say('The username you entered is valid. Thanks!');
+              convo.next();
+            }
             console.log('newAdminTemp: ' + newAdminTemp);
             console.log('newAdminId: ' + newAdminId);
             console.log('newAdmin: ' + newAdmin);
-            console.log('allSlackUsers: ' + JSON.stringify(allSlackUsers));
             console.log('isValidUsername: ' + isValidUsername);
-            convo.say('Cool, you said: ' + response.text);
-            convo.next();
           });
         });
       });
