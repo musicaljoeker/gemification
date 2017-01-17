@@ -467,7 +467,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
             console.log('isValidUsername: ' + isValidUsername);
             convo.say('Cool, you said: ' + response.text);
             convo.next();
-          }
+          });
         });
       });
     } else{
