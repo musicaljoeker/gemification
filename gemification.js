@@ -445,6 +445,17 @@ controller.hears('clear gems','direct_message',function(bot,message) {
   });
 });
 
+function findUserById(allSlackUsers, id){
+  var isFound = false;
+  for(var i=0; i<allSlackUsers.length; i++){
+    if(allSlackUsers[i].id == id){
+      isFound = true;
+      break;
+    }
+  }
+  return isFound;
+}
+
 // This function listens for the direct message command 'add admin' to add an admin
 // to the database. If the user is in the database already, the user is bumped up to admin
 // role. If the user isn't found in the database, the user is added as an admin. Only
@@ -460,7 +471,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
             var newAdminTemp = String(response.text.match(/@([^\s]+)/g));
             var newAdminId = newAdminTemp.substring(1, newAdminTemp.length-1);
             var newAdmin = '<@' + newAdminId + '>';
-            var isValidUsername = allSlackUsers.indexOf(newAdminId) > -1;
+            var isValidUsername = findUserById(allSlackUsers, newAdminId);
             console.log('newAdminTemp: ' + newAdminTemp);
             console.log('newAdminId: ' + newAdminId);
             console.log('newAdmin: ' + newAdmin);
