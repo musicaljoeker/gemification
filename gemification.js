@@ -578,11 +578,6 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                     }
                   });
                 }
-                console.log('newAdminTemp: ' + newAdminTemp);
-                console.log('newAdminId: ' + newAdminId);
-                console.log('newAdmin: ' + newAdmin);
-                console.log('isValidUsername: ' + isValidUsername);
-                console.log('newAdminName: ' + newAdminName);
              });
            }
           }
