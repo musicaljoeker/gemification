@@ -468,9 +468,9 @@ controller.hears('add admin', 'direct_message', function(bot, message){
     if(isAdmin){
       // The user who typed the message is an admin
       bot.startConversation(message, function(err, convo) {
-        convo.ask('Who would you like to add as an admin? Or type done to quit.',[
+        convo.ask('Who would you like to add as an admin? Or type *cancel* to quit.',[
           {
-            pattern: 'done',
+            pattern: 'cancel',
             callback: function(response,convo) {
               convo.say('Ok you are done!');
               convo.next();
