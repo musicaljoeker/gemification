@@ -544,21 +544,65 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                       checkIsAdminById(newAdminId, function(isAlreadyAdmin){
                         if (isAlreadyAdmin){
                           // The user that was entered is already an admin
-                          convo.say(newAdminName + ' is already an admin user in gemification.');
+                          convo.say(newAdmin + ' is already an admin user in gemification.');
                           convo.next();
                         } else{
                           // The user that was entered is not an admin, and should be set as an admin
-                          // Update the user as an admin
-                          DBPool.getConnection(function(err, connection){
-                            if (err) throw err;
-                            connection.query(
-                              'UPDATE userGem SET isAdmin=\'1\' WHERE userId=\'' + newAdminId + '\';',
-                              function(err, rows){
-                              if (err) throw err;
-                              convo.say(newAdmin + ' was updated as an admin.');
-                              convo.next();
-                            });
-                          });
+
+                          // Validate the what is about to happen with the user
+                          convo.ask({
+                            text: 'Are you sure you want to set ' + newAdmin + ' as an admin?',
+                            attachments:[
+                              {
+                                callback_id: '1',
+                                attachment_type: 'default',
+                                actions: [
+                                  {
+                                    "name": "yes",
+                                    "text": "Yes",
+                                    "value": "yes",
+                                    "type": "button"
+                                  },
+                                  {
+                                    "name": "no",
+                                    "text": "No",
+                                    "value": "no",
+                                    "type": "button"
+                                  }
+                                ]
+                              }
+                            ]
+                          },[
+                            {
+                              pattern: "yes",
+                              callback: function(reply, convo) {
+                                // Update the user as an admin
+                                DBPool.getConnection(function(err, connection){
+                                  if (err) throw err;
+                                  connection.query(
+                                    'UPDATE userGem SET isAdmin=\'1\' WHERE userId=\'' + newAdminId + '\';',
+                                    function(err, rows){
+                                    if (err) throw err;
+                                    convo.say(newAdmin + ' is now set as an admin.');
+                                    convo.next();
+                                  });
+                                });
+                              }
+                            },
+                            {
+                              pattern: "no",
+                              callback: function(reply, convo) {
+                                convo.say(newAdmin + ' will not be set as an admin.');
+                                convo.next();
+                              }
+                            },
+                            {
+                              default: true,
+                              callback: function(reply, convo) {
+                                // do nothing
+                              }
+                            }
+                          ]);
                         }
                       });
                     } else{
@@ -569,6 +613,8 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                       // username on the account from the id.
                       var newAdminName = convertIdToName(allSlackUsers, newAdminId);
 
+                      // Validate the what is about to happen with the user
+
                       // Create the user in the database as an admin
                       DBPool.getConnection(function(err, connection){
                         if (err) throw err;
@@ -576,7 +622,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                           'INSERT INTO userGem (userId, username, isAdmin) VALUES (\'' + newAdminId + '\', \'' + newAdminName + '\', TRUE)',
                           function(err, rows){
                           if (err) throw err;
-                          convo.say(newAdmin + ' was created in the database as an admin.');
+                          convo.say(newAdmin + ' is now set as an admin.');
                           convo.next();
                         });
                       });
