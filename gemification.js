@@ -464,6 +464,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
             console.log('newAdminTemp: ' + newAdminTemp);
             console.log('newAdminId: ' + newAdminId);
             console.log('newAdmin: ' + newAdmin);
+            console.log('allSlackUsers: ' + JSON.stringify(allSlackUsers));
             console.log('isValidUsername: ' + isValidUsername);
             convo.say('Cool, you said: ' + response.text);
             convo.next();
