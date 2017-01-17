@@ -487,20 +487,22 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                 var newAdminId = newAdminTemp.substring(1, newAdminTemp.length-1);
                 var newAdmin = '<@' + newAdminId + '>';
                 var isValidUsername = findUserById(allSlackUsers, newAdminId);
+                var newAdminName = convertIdToName(allSlackUsers, newAdminId);
                 if (!isValidUsername){
-                 // The username they entered wasn't valid
-                 convo.say('The username you entered isn\'t valid.');
-                 convo.repeat();
-                 convo.next();
+                  // The username they entered wasn't valid
+                  convo.say('The username you entered isn\'t valid.');
+                  convo.repeat();
+                  convo.next();
                 } else{
-                 // The username they entered is valid
-                 convo.say('The username you entered is valid. Thanks!');
-                 convo.next();
+                  // The username they entered is valid
+                  convo.say('The username you entered is valid. Thanks!');
+                  convo.next();
                 }
                 console.log('newAdminTemp: ' + newAdminTemp);
                 console.log('newAdminId: ' + newAdminId);
                 console.log('newAdmin: ' + newAdmin);
                 console.log('isValidUsername: ' + isValidUsername);
+                console.log('newAdminName: ' + newAdminName);
              });
            }
           }
