@@ -556,14 +556,15 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                           // The user that was entered is not an admin, and should be set as an admin
                           convo.say('The user you entered is not an admin');
                           // UPDATE THE USER AS AN ADMIN
+                          convo.next();
                         }
                       });
                     } else{
                       // The user is not in the database
                       convo.say('The user is not in the database');
                       // CREATE THE USER AS AN ADMIN
+                      convo.next();
                     }
-                    convo.next();
                   });
                 }
                 console.log('newAdminTemp: ' + newAdminTemp);
