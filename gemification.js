@@ -509,7 +509,6 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                 var newAdminId = newAdminTemp.substring(1, newAdminTemp.length-1);
                 var newAdmin = '<@' + newAdminId + '>';
                 var isValidUsername = findUserById(allSlackUsers, newAdminId);
-                var newAdminName = convertIdToName(allSlackUsers, newAdminId);
                 if (!isValidUsername){
                   // The username they entered wasn't valid
                   convo.say('The username you entered isn\'t valid.');
@@ -517,6 +516,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                   convo.next();
                 } else{
                   // The username they entered is valid
+                  var newAdminName = convertIdToName(allSlackUsers, newAdminId);
                   checkIsAdminById(newAdminId, function(isEnteredAdmin){
                     if (isEnteredAdmin){
                       // The user that was entered is already an admin
