@@ -549,61 +549,106 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                         } else{
                           // The user that was entered is not an admin, and should be set as an admin
 
-                          // Validate the what is about to happen with the user
-                          convo.say("we are in the update section.");
                           convo.ask({
                             attachments:[
-                              {
-                                title: 'Are you sure you want to set ' + newAdmin + ' as an admin?',
-                                callback_id: '1',
-                                attachment_type: 'default',
-                                actions: [
-                                  {
-                                    "name": "yes",
-                                    "text": "Yes",
-                                    "value": "yes",
-                                    "type": "button"
-                                  },
-                                  {
-                                    "name": "no",
-                                    "text": "No",
-                                    "value": "no",
-                                    "type": "button"
-                                  }
-                                ]
-                              }
+                                {
+                                    title: 'Do you want to proceed?',
+                                    callback_id: '123',
+                                    attachment_type: 'default',
+                                    actions: [
+                                        {
+                                            "name":"yes",
+                                            "text": "Yes",
+                                            "value": "yes",
+                                            "type": "button",
+                                        },
+                                        {
+                                            "name":"no",
+                                            "text": "No",
+                                            "value": "no",
+                                            "type": "button",
+                                        }
+                                    ]
+                                }
                             ]
-                          },[
+                        },[
                             {
-                              pattern: "yes",
-                              callback: function(reply, convo) {
-                                // Update the user as an admin
-                                DBPool.getConnection(function(err, connection){
-                                  if (err) throw err;
-                                  connection.query(
-                                    'UPDATE userGem SET isAdmin=\'1\' WHERE userId=\'' + newAdminId + '\';',
-                                    function(err, rows){
-                                    if (err) throw err;
-                                    convo.say(newAdmin + ' is now set as an admin.');
+                                pattern: "yes",
+                                callback: function(reply, convo) {
+                                    convo.say('FABULOUS!');
                                     convo.next();
-                                  });
-                                });
-                              }
+                                    // do something awesome here.
+                                }
                             },
                             {
-                              pattern: "no",
-                              callback: function(reply, convo) {
-                                convo.say(newAdmin + ' will not be set as an admin.');
-                                convo.next();
-                              }
+                                pattern: "no",
+                                callback: function(reply, convo) {
+                                    convo.say('Too bad');
+                                    convo.next();
+                                }
                             },
                             {
-                              default: true,
-                              callback: function(reply, convo) {
-                                // do nothing
-                              }
+                                default: true,
+                                callback: function(reply, convo) {
+                                    // do nothing
+                                }
                             }
-                          ]);
+                        ]);
+
+                          // Validate the what is about to happen with the user
+                          // convo.ask({
+                          //   attachments:[
+                          //     {
+                          //       title: 'Are you sure you want to set ' + newAdmin + ' as an admin?',
+                          //       callback_id: '1',
+                          //       attachment_type: 'default',
+                          //       actions: [
+                          //         {
+                          //           "name": "yes",
+                          //           "text": "Yes",
+                          //           "value": "yes",
+                          //           "type": "button"
+                          //         },
+                          //         {
+                          //           "name": "no",
+                          //           "text": "No",
+                          //           "value": "no",
+                          //           "type": "button"
+                          //         }
+                          //       ]
+                          //     }
+                          //   ]
+                          // },[
+                          //   {
+                          //     pattern: "yes",
+                          //     callback: function(reply, convo) {
+                          //       // Update the user as an admin
+                          //       DBPool.getConnection(function(err, connection){
+                          //         if (err) throw err;
+                          //         connection.query(
+                          //           'UPDATE userGem SET isAdmin=\'1\' WHERE userId=\'' + newAdminId + '\';',
+                          //           function(err, rows){
+                          //           if (err) throw err;
+                          //           convo.say(newAdmin + ' is now set as an admin.');
+                          //           convo.next();
+                          //         });
+                          //       });
+                          //     }
+                          //   },
+                          //   {
+                          //     pattern: "no",
+                          //     callback: function(reply, convo) {
+                          //       convo.say(newAdmin + ' will not be set as an admin.');
+                          //       convo.next();
+                          //     }
+                          //   },
+                          //   {
+                          //     default: true,
+                          //     callback: function(reply, convo) {
+                          //       // do nothing
+                          //     }
+                          //   }
+                          // ]);
                         }
                       });
                     } else{
