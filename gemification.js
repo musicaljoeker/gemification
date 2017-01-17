@@ -550,10 +550,10 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                           // The user that was entered is not an admin, and should be set as an admin
 
                           // Validate the what is about to happen with the user
-                          convo.say({
-                            text: 'Are you sure you want to set ' + newAdmin + ' as an admin?',
+                          convo.ask({
                             attachments:[
                               {
+                                title: 'Are you sure you want to set ' + newAdmin + ' as an admin?',
                                 callback_id: '1',
                                 attachment_type: 'default',
                                 actions: [
