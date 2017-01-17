@@ -542,24 +542,28 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                   // username on the account from the id.
                   var newAdminName = convertIdToName(allSlackUsers, newAdminId);
 
-                  // Validating that the user is not already set to be an admin
-                  checkIsAdminById(newAdminId, function(isAlreadyAdmin){
-                    if (isAlreadyAdmin){
-                      // The user that was entered is already an admin
-                      convo.say(newAdminName + ' is already an admin user in gemification.');
-                      convo.next();
-                    } else{
-                      // The user that was entered is not an admin, and should be set as an admin
-                      convo.say('The user you entered is not an admin');
-                      checkIfUserExists(newAdminId, function(userExists){
-                        if (userExists){
-                          convo.say('The user already exists in the database');
+                  checkIfUserExists(newAdminId, function(userExists){
+                    if (userExists){
+                      // The user is in the database
+                      convo.say('The user already exists in the database');
+                      // Validating that the user is not already set to be an admin
+                      checkIsAdminById(newAdminId, function(isAlreadyAdmin){
+                        if (isAlreadyAdmin){
+                          // The user that was entered is already an admin
+                          convo.say(newAdminName + ' is already an admin user in gemification.');
+                          convo.next();
                         } else{
-                          convo.say('The user is not in the database');
+                          // The user that was entered is not an admin, and should be set as an admin
+                          convo.say('The user you entered is not an admin');
+                          // UPDATE THE USER AS AN ADMIN
                         }
-                        convo.next();
                       });
+                    } else{
+                      // The user is not in the database
+                      convo.say('The user is not in the database');
+                      // CREATE THE USER AS AN ADMIN
                     }
+                    convo.next();
                   });
                 }
                 console.log('newAdminTemp: ' + newAdminTemp);
