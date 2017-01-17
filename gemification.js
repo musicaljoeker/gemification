@@ -558,7 +558,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                               'UPDATE userGem SET isAdmin=\'1\' WHERE userId=\'' + newAdminId + '\';',
                               function(err, rows){
                               if (err) throw err;
-                              convo.say(newAdminName + ' was updated as an admin.');
+                              convo.say(newAdmin + ' was updated as an admin.');
                               convo.next();
                             });
                           });
@@ -573,8 +573,17 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                       // username on the account from the id.
                       var newAdminName = convertIdToName(allSlackUsers, newAdminId);
 
-                      // CREATE THE USER AS AN ADMIN
-                      convo.next();
+                      // Create the user in the database as an admin
+                      DBPool.getConnection(function(err, connection){
+                        if (err) throw err;
+                        connection.query(
+                          'INSERT INTO userGem (userId, username, isAdmin) VALUES (\'' + newAdminId + '\', \'' + newAdminName + '\', TRUE)',
+                          function(err, rows){
+                          if (err) throw err;
+                          convo.say(newAdmin + ' was created in the database as an admin.');
+                          convo.next();
+                        });
+                      });
                     }
                   });
                 }
