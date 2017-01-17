@@ -94,7 +94,8 @@ function convertIdToName(slackUsers, id){
 
 // This function checks if the message that was typed by the user is an admin or not.
 // The callback function in this method accepts a boolean value telling if the user is
-// an admin or not.
+// an admin or not. The callback function must accept a parameter, a boolean value, to
+// see if the user is currently an admin or not.
 function checkIsAdmin(bot, message, callback){
   DBPool.getConnection(function(err, connection){
     if (err) throw err;
@@ -433,7 +434,6 @@ controller.hears('clear gems','direct_message',function(bot,message) {
           // Done with connection
           connection.release();
           // Don't use connection here, it has been returned to the pool
-
           // The leaderboard was cleared successfully
           bot.reply(message, 'The leaderboard was cleared successfully. Now get out there and start earning yourself some gems! :gem:');
         });
@@ -445,12 +445,23 @@ controller.hears('clear gems','direct_message',function(bot,message) {
   });
 });
 
+// This function listens for the direct message command 'add admin' to add an admin
+// to the database. If the user is in the database already, the user is bumped up to admin
+// role. If the user isn't found in the database, the user is added as an admin. Only
+// existing admins can add new admins.
 controller.hears('add admin', 'direct_message', function(bot, message){
   checkIsAdmin(bot, message, function(isAdmin){
     if(isAdmin){
       // The user who typed the message is an admin
       bot.startConversation(message, function(err, convo) {
         convo.ask('Who would you like to add as an admin?', function(response, convo){
+          // Trimmed raw username who is getting the admin privileges (ex. UW392NNSK)
+          var newAdminTemp = String(response.text.match(/@([^\s]+)/g));
+          var newAdminId = newAdminTemp.substring(1, newAdminTemp.length-1);
+          var newAdmin = '<@' + newAdminId + '>';
+          console.log('newAdminTemp: ' + newAdminTemp);
+          console.log('newAdminId: ' + newAdminId);
+          console.log('newAdmin: ' + newAdmin);
           convo.say('Cool, you said: ' + response.text);
           convo.next();
         });
