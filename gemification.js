@@ -455,15 +455,19 @@ controller.hears('add admin', 'direct_message', function(bot, message){
       // The user who typed the message is an admin
       bot.startConversation(message, function(err, convo) {
         convo.ask('Who would you like to add as an admin?', function(response, convo){
-          // Trimmed raw username who is getting the admin privileges (ex. UW392NNSK)
-          var newAdminTemp = String(response.text.match(/@([^\s]+)/g));
-          var newAdminId = newAdminTemp.substring(1, newAdminTemp.length-1);
-          var newAdmin = '<@' + newAdminId + '>';
-          console.log('newAdminTemp: ' + newAdminTemp);
-          console.log('newAdminId: ' + newAdminId);
-          console.log('newAdmin: ' + newAdmin);
-          convo.say('Cool, you said: ' + response.text);
-          convo.next();
+          getSlackUsers(bot, message, function(allSlackUsers){
+            // Trimmed raw username who is getting the admin privileges (ex. UW392NNSK)
+            var newAdminTemp = String(response.text.match(/@([^\s]+)/g));
+            var newAdminId = newAdminTemp.substring(1, newAdminTemp.length-1);
+            var newAdmin = '<@' + newAdminId + '>';
+            var isValidUsername = allSlackUsers.indexOf(newAdminId) > -1;
+            console.log('newAdminTemp: ' + newAdminTemp);
+            console.log('newAdminId: ' + newAdminId);
+            console.log('newAdmin: ' + newAdmin);
+            console.log('isValidUsername: ' + isValidUsername);
+            convo.say('Cool, you said: ' + response.text);
+            convo.next();
+          }
         });
       });
     } else{
