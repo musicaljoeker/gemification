@@ -472,31 +472,35 @@ controller.hears('add admin', 'direct_message', function(bot, message){
           {
             pattern: 'cancel',
             callback: function(response,convo) {
-              convo.say('Ok you are done!');
+              convo.say('Cancel.. got it!');
               convo.next();
             }
           },
           {
             default: true,
             callback: function(response, convo){
-             getSlackUsers(bot, message, function(allSlackUsers){
-               // Trimmed raw username who is getting the admin privileges (ex. UW392NNSK)
-               var newAdminTemp = String(response.text.match(/@([^\s]+)/g));
-               var newAdminId = newAdminTemp.substring(1, newAdminTemp.length-1);
-               var newAdmin = '<@' + newAdminId + '>';
-               var isValidUsername = findUserById(allSlackUsers, newAdminId);
-               if (!isValidUsername){
+              // getSlackUsers asyncronously gets all all of the Slack users that are
+              // the Slack team.
+              getSlackUsers(bot, message, function(allSlackUsers){
+                // Trimmed raw username who is getting the admin privileges (ex. UW392NNSK)
+                var newAdminTemp = String(response.text.match(/@([^\s]+)/g));
+                var newAdminId = newAdminTemp.substring(1, newAdminTemp.length-1);
+                var newAdmin = '<@' + newAdminId + '>';
+                var isValidUsername = findUserById(allSlackUsers, newAdminId);
+                if (!isValidUsername){
+                 // The username they entered wasn't valid
                  convo.say('The username you entered isn\'t valid.');
                  convo.repeat();
                  convo.next();
-               } else{
+                } else{
+                 // The username they entered is valid
                  convo.say('The username you entered is valid. Thanks!');
                  convo.next();
-               }
-               console.log('newAdminTemp: ' + newAdminTemp);
-               console.log('newAdminId: ' + newAdminId);
-               console.log('newAdmin: ' + newAdmin);
-               console.log('isValidUsername: ' + isValidUsername);
+                }
+                console.log('newAdminTemp: ' + newAdminTemp);
+                console.log('newAdminId: ' + newAdminId);
+                console.log('newAdmin: ' + newAdmin);
+                console.log('isValidUsername: ' + isValidUsername);
              });
            }
           }
