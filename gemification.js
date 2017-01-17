@@ -537,11 +537,9 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                   convo.next();
                 } else{
                   // The username they entered is valid
-
                   checkIfUserExists(newAdminId, function(userExists){
                     if (userExists){
                       // The user is in the database
-                      convo.say('The user already exists in the database.');
                       // Validating that the user is not already set to be an admin
                       checkIsAdminById(newAdminId, function(isAlreadyAdmin){
                         if (isAlreadyAdmin){
@@ -550,7 +548,6 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                           convo.next();
                         } else{
                           // The user that was entered is not an admin, and should be set as an admin
-                          convo.say('The user you entered is not an admin.');
                           // Update the user as an admin
                           DBPool.getConnection(function(err, connection){
                             if (err) throw err;
@@ -566,7 +563,6 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                       });
                     } else{
                       // The user is not in the database
-                      convo.say('The user is not in the database');
 
                       // Now that we know the username entered is valid, and the
                       // user isn't in the database, we should get the
