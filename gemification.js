@@ -468,27 +468,39 @@ controller.hears('add admin', 'direct_message', function(bot, message){
     if(isAdmin){
       // The user who typed the message is an admin
       bot.startConversation(message, function(err, convo) {
-        convo.ask('Who would you like to add as an admin?', function(response, convo){
-          getSlackUsers(bot, message, function(allSlackUsers){
-            // Trimmed raw username who is getting the admin privileges (ex. UW392NNSK)
-            var newAdminTemp = String(response.text.match(/@([^\s]+)/g));
-            var newAdminId = newAdminTemp.substring(1, newAdminTemp.length-1);
-            var newAdmin = '<@' + newAdminId + '>';
-            var isValidUsername = findUserById(allSlackUsers, newAdminId);
-            if (!isValidUsername){
-              convo.say('The username you entered isn\'t valid.');
-              convo.repeat();
-              convo.next();
-            } else{
-              convo.say('The username you entered is valid. Thanks!');
+        convo.ask('Who would you like to add as an admin? Or type done to quit.',[
+          {
+            pattern: 'done',
+            callback: function(response,convo) {
+              convo.say('Ok you are done!');
               convo.next();
             }
-            console.log('newAdminTemp: ' + newAdminTemp);
-            console.log('newAdminId: ' + newAdminId);
-            console.log('newAdmin: ' + newAdmin);
-            console.log('isValidUsername: ' + isValidUsername);
-          });
-        });
+          },
+          {
+            default: true,
+            callback: function(response, convo){
+             getSlackUsers(bot, message, function(allSlackUsers){
+               // Trimmed raw username who is getting the admin privileges (ex. UW392NNSK)
+               var newAdminTemp = String(response.text.match(/@([^\s]+)/g));
+               var newAdminId = newAdminTemp.substring(1, newAdminTemp.length-1);
+               var newAdmin = '<@' + newAdminId + '>';
+               var isValidUsername = findUserById(allSlackUsers, newAdminId);
+               if (!isValidUsername){
+                 convo.say('The username you entered isn\'t valid.');
+                 convo.repeat();
+                 convo.next();
+               } else{
+                 convo.say('The username you entered is valid. Thanks!');
+                 convo.next();
+               }
+               console.log('newAdminTemp: ' + newAdminTemp);
+               console.log('newAdminId: ' + newAdminId);
+               console.log('newAdmin: ' + newAdmin);
+               console.log('isValidUsername: ' + isValidUsername);
+             });
+           });
+          }
+        ]);
       });
     } else{
       // The user who typed the message isn't an admin
