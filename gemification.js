@@ -96,7 +96,7 @@ function convertIdToName(slackUsers, id){
 // The callback function in this method accepts a boolean value telling if the user is
 // an admin or not. The callback function must accept a parameter, a boolean value, to
 // see if the user is currently an admin or not.
-function checkIsAdmin(bot, message, callback){
+function checkIsAdminByMessage(bot, message, callback){
   DBPool.getConnection(function(err, connection){
     if (err) throw err;
     connection.query(
@@ -104,10 +104,32 @@ function checkIsAdmin(bot, message, callback){
       function(err, rows){
       if (err) throw err;
       if(rows[0].isAdmin==1){
-        // user is an admin and may proceed to clear the gem period.
+        // user is an admin
         callback(true);
       }else {
-        // user isn't an admin and needs to be put in their place.
+        // user isn't an admin
+        callback(false);
+      }
+    });
+  });
+}
+
+// This function checks if the id entered is an admin or not.
+// The callback function in this method accepts a boolean value telling if the user is
+// an admin or not. The callback function must accept a parameter, a boolean value, to
+// see if the user is currently an admin or not.
+function checkIsAdminById(id, callback){
+  DBPool.getConnection(function(err, connection){
+    if (err) throw err;
+    connection.query(
+      'SELECT isAdmin FROM userGem WHERE userId=\'' + id + '\';',
+      function(err, rows){
+      if (err) throw err;
+      if(rows[0].isAdmin==1){
+        // user is an admin
+        callback(true);
+      }else {
+        // user isn't an admin
         callback(false);
       }
     });
@@ -437,7 +459,7 @@ controller.hears('leaderboard',['direct_mention','direct_message'],function(bot,
 controller.hears('clear gems','direct_message',function(bot,message) {
   // Validates if the user typed is an admin
   // Getting the database pool
-  checkIsAdmin(bot, message, function(isAdmin){
+  checkIsAdminByMessage(bot, message, function(isAdmin){
     if(isAdmin){
       DBPool.getConnection(function(err, connection){
         if (err) throw err;
@@ -464,7 +486,7 @@ controller.hears('clear gems','direct_message',function(bot,message) {
 // role. If the user isn't found in the database, the user is added as an admin. Only
 // existing admins can add new admins.
 controller.hears('add admin', 'direct_message', function(bot, message){
-  checkIsAdmin(bot, message, function(isAdmin){
+  checkIsAdminByMessage(bot, message, function(isAdmin){
     if(isAdmin){
       // The user who typed the message is an admin
       bot.startConversation(message, function(err, convo) {
@@ -495,8 +517,16 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                   convo.next();
                 } else{
                   // The username they entered is valid
-                  convo.say('The username you entered is valid. Thanks!');
-                  convo.next();
+                  checkIsAdminById(newAdminId, function(isEnteredAdmin){
+                    if (isEnteredAdmin){
+                      // The user that was entered is already an admin
+                      convo.say(newAdminName + ' is already an admin user in gemification.');
+                      convo.next();
+                    } else{
+                      // The user that was entered is not an admin, and should be set as an admin
+
+                    }
+                  });
                 }
                 console.log('newAdminTemp: ' + newAdminTemp);
                 console.log('newAdminId: ' + newAdminId);
