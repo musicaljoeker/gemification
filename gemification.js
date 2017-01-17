@@ -114,6 +114,27 @@ function checkIsAdminByMessage(bot, message, callback){
   });
 }
 
+// Function takes an id and a callback function and performs a query to the DB
+// to see if the user exists. A boolean value is sent as a parameter to the callback
+// to say whether or not the user exists.
+function checkIfUserExists(id, callback){
+  DBPool.getConnection(function(err, connection){
+    if (err) throw err;
+    connection.query(
+      'SELECT id FROM userGem WHERE userId=\'' + id + '\';',
+      function(err, rows){
+      if (err) throw err;
+      if(rows[0].id > -1){
+        // user exists
+        callback(true);
+      }else {
+        // user doesn't exist
+        callback(false);
+      }
+    });
+  });
+}
+
 // This function checks if the id entered is an admin or not.
 // The callback function in this method accepts a boolean value telling if the user is
 // an admin or not. The callback function must accept a parameter, a boolean value, to
@@ -516,16 +537,28 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                   convo.next();
                 } else{
                   // The username they entered is valid
+
+                  // Now that we know the username entered is valid, we can get the
+                  // username on the account from the id.
                   var newAdminName = convertIdToName(allSlackUsers, newAdminId);
-                  checkIsAdminById(newAdminId, function(isEnteredAdmin){
-                    if (isEnteredAdmin){
+
+                  // Validating that the user is not already set to be an admin
+                  checkIsAdminById(newAdminId, function(isAlreadyAdmin){
+                    if (isAlreadyAdmin){
                       // The user that was entered is already an admin
                       convo.say(newAdminName + ' is already an admin user in gemification.');
                       convo.next();
                     } else{
                       // The user that was entered is not an admin, and should be set as an admin
                       convo.say('The user you entered is not an admin');
-                      convo.next();
+                      checkIfUserExists(newAdminId, function(userExists){
+                        if (userExists){
+                          convo.say('The user already exists in the database');
+                        } else{
+                          convo.say('The user is not in the database');
+                        }
+                        convo.next();
+                      });
                     }
                   });
                 }
