@@ -538,14 +538,10 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                 } else{
                   // The username they entered is valid
 
-                  // Now that we know the username entered is valid, we can get the
-                  // username on the account from the id.
-                  var newAdminName = convertIdToName(allSlackUsers, newAdminId);
-
                   checkIfUserExists(newAdminId, function(userExists){
                     if (userExists){
                       // The user is in the database
-                      convo.say('The user already exists in the database');
+                      convo.say('The user already exists in the database.');
                       // Validating that the user is not already set to be an admin
                       checkIsAdminById(newAdminId, function(isAlreadyAdmin){
                         if (isAlreadyAdmin){
@@ -554,14 +550,29 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                           convo.next();
                         } else{
                           // The user that was entered is not an admin, and should be set as an admin
-                          convo.say('The user you entered is not an admin');
-                          // UPDATE THE USER AS AN ADMIN
-                          convo.next();
+                          convo.say('The user you entered is not an admin.');
+                          // Update the user as an admin
+                          DBPool.getConnection(function(err, connection){
+                            if (err) throw err;
+                            connection.query(
+                              'UPDATE isAdmin FROM userGem WHERE userId=\'' + newAdminId + '\';',
+                              function(err, rows){
+                              if (err) throw err;
+                              convo.say(newAdminName + ' was updated as an admin.');
+                              convo.next();
+                            });
+                          });
                         }
                       });
                     } else{
                       // The user is not in the database
                       convo.say('The user is not in the database');
+
+                      // Now that we know the username entered is valid, and the
+                      // user isn't in the database, we should get the
+                      // username on the account from the id.
+                      var newAdminName = convertIdToName(allSlackUsers, newAdminId);
+
                       // CREATE THE USER AS AN ADMIN
                       convo.next();
                     }
