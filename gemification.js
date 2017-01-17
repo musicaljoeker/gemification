@@ -537,8 +537,10 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                   convo.next();
                 } else{
                   // The username they entered is valid
+                  console.log("username is valid");
                   checkIfUserExists(newAdminId, function(userExists){
                     if (userExists){
+                      console.log("the user exists");
                       // The user is in the database
                       // Validating that the user is not already set to be an admin
                       checkIsAdminById(newAdminId, function(isAlreadyAdmin){
@@ -548,7 +550,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                           convo.next();
                         } else{
                           // The user that was entered is not an admin, and should be set as an admin
-
+                          console.log("the user is not an admin");
                           convo.ask({
                             attachments:[
                                 {
