@@ -623,6 +623,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                       // username on the account from the id.
                       var newAdminName = convertIdToName(allSlackUsers, newAdminId);
 
+                      convo.next();
                       // Validate the what is about to happen with the user
                       convo.ask({
                         attachments:[
