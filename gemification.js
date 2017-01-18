@@ -520,7 +520,6 @@ controller.hears('add admin', 'direct_message', function(bot, message){
             pattern: 'cancel',
             callback: function(response,convo) {
               convo.say('Cancel.. got it!');
-              convo.next();
             }
           },
           {
@@ -549,7 +548,6 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                         if (isAlreadyAdmin){
                           // The user that was entered is already an admin
                           convo.say(newAdmin + ' is already an admin user in gemification.');
-                          convo.next();
                         } else{
                           // The user that was entered is not an admin, and should be set as an admin
 
@@ -588,7 +586,6 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                                     function(err, rows){
                                     if (err) throw err;
                                     convo.say(newAdmin + ' is now set as an admin.');
-                                    convo.next();
                                   });
                                 });
                               }
@@ -597,7 +594,6 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                               pattern: "no",
                               callback: function(reply, convo) {
                                 convo.say(newAdmin + ' will not be set as an admin.');
-                                convo.next();
                               }
                             },
                             {
@@ -653,7 +649,6 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                                 function(err, rows){
                                 if (err) throw err;
                                 convo.say(newAdmin + ' is now set as an admin.');
-                                convo.next();
                               });
                             });
                           }
@@ -662,7 +657,6 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                           pattern: "no",
                           callback: function(reply, convo) {
                             convo.say(newAdmin + ' will not be set as an admin.');
-                            convo.next();
                           }
                         },
                         {
@@ -681,6 +675,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
           }
         ]);
       });
+      convo.next();
     } else{
       // The user who typed the message isn't an admin
       bot.reply(message, 'Nice try, wise guy, but you aren\'t an admin. Only admins can add new admins. :angry:');
