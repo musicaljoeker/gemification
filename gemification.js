@@ -570,7 +570,7 @@ validateNewAdmin = function(response, convo){
           });
         } else{
           // The user is not in the database
-          validateNewAdmin(reposnse, convo, newAdminId, newAdmin);
+          validateNewAdmin(reposnse, convo, newAdminId, newAdmin, allSlackUsers);
         }
       });
     }
@@ -635,7 +635,7 @@ validateUpdateToAdmin = function(response, convo, newAdminId, newAdmin){
   convo.next();
 }
 
-validateNewAdmin = function(reponse, convo, newAdminId, newAdmin){
+validateNewAdmin = function(reponse, convo, newAdminId, newAdmin, allSlackUsers){
   // Now that we know the username entered is valid, and the
   // user isn't in the database, we should get the
   // username on the account from the id.
