@@ -554,7 +554,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                           convo.next();
                         } else{
                           // The user that was entered is not an admin, and should be set as an admin
-
+                          convo.next();
                           // Validate the what is about to happen with the user
                           convo.ask({
                             attachments:[
