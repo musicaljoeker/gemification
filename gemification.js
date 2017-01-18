@@ -519,7 +519,9 @@ controller.hears('add admin', 'direct_message', function(bot, message){
           {
             pattern: 'cancel',
             callback: function(response,convo) {
+              // Convo end point
               convo.say('Cancel.. got it!');
+              convo.next();
             }
           },
           {
@@ -547,7 +549,9 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                       checkIsAdminById(newAdminId, function(isAlreadyAdmin){
                         if (isAlreadyAdmin){
                           // The user that was entered is already an admin
+                          // Convo end point
                           convo.say(newAdmin + ' is already an admin user in gemification.');
+                          convo.next();
                         } else{
                           // The user that was entered is not an admin, and should be set as an admin
 
@@ -585,7 +589,10 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                                     'UPDATE userGem SET isAdmin=\'1\' WHERE userId=\'' + newAdminId + '\';',
                                     function(err, rows){
                                     if (err) throw err;
+                                    // Convo end point
                                     convo.say(newAdmin + ' is now set as an admin.');
+                                    convo.next();
+                                    convo.next();
                                   });
                                 });
                               }
@@ -593,17 +600,22 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                             {
                               pattern: "no",
                               callback: function(reply, convo) {
+                                // Convo end point
                                 convo.say(newAdmin + ' will not be set as an admin.');
+                                convo.next();
+                                convo.next();
                               }
                             },
                             {
                               default: true,
                               callback: function(reply, convo) {
                                 // do nothing
+                                // Convo end point
+                                convo.next();
+                                convo.next();
                               }
                             }
                           ]);
-                          convo.next();
                         }
                       });
                     } else{
@@ -648,7 +660,10 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                                 'INSERT INTO userGem (userId, username, isAdmin) VALUES (\'' + newAdminId + '\', \'' + newAdminName + '\', TRUE)',
                                 function(err, rows){
                                 if (err) throw err;
+                                // Convo end point
                                 convo.say(newAdmin + ' is now set as an admin.');
+                                convo.next();
+                                convo.next();
                               });
                             });
                           }
@@ -656,17 +671,22 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                         {
                           pattern: "no",
                           callback: function(reply, convo) {
+                            // Convo end point
                             convo.say(newAdmin + ' will not be set as an admin.');
+                            convo.next();
+                            convo.next();
                           }
                         },
                         {
                           default: true,
                           callback: function(reply, convo) {
                             // do nothing
+                            // Convo end point
+                            convo.next();
+                            convo.next();
                           }
                         }
                       ]);
-                      convo.next();
                     }
                   });
                 }
@@ -675,7 +695,6 @@ controller.hears('add admin', 'direct_message', function(bot, message){
           }
         ]);
       });
-      convo.next();
     } else{
       // The user who typed the message isn't an admin
       bot.reply(message, 'Nice try, wise guy, but you aren\'t an admin. Only admins can add new admins. :angry:');
