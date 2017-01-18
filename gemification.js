@@ -592,7 +592,6 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                                     // Convo end point
                                     convo.say(newAdmin + ' is now set as an admin.');
                                     convo.next();
-                                    convo.next();
                                   });
                                 });
                               }
@@ -603,7 +602,6 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                                 // Convo end point
                                 convo.say(newAdmin + ' will not be set as an admin.');
                                 convo.next();
-                                convo.next();
                               }
                             },
                             {
@@ -611,7 +609,6 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                               callback: function(reply, convo) {
                                 // do nothing
                                 // Convo end point
-                                convo.next();
                                 convo.next();
                               }
                             }
@@ -663,7 +660,6 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                                 // Convo end point
                                 convo.say(newAdmin + ' is now set as an admin.');
                                 convo.next();
-                                convo.next();
                               });
                             });
                           }
@@ -674,7 +670,6 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                             // Convo end point
                             convo.say(newAdmin + ' will not be set as an admin.');
                             convo.next();
-                            convo.next();
                           }
                         },
                         {
@@ -682,7 +677,6 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                           callback: function(reply, convo) {
                             // do nothing
                             // Convo end point
-                            convo.next();
                             convo.next();
                           }
                         }
