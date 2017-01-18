@@ -514,186 +514,176 @@ controller.hears('add admin', 'direct_message', function(bot, message){
   checkIsAdminByMessage(bot, message, function(isAdmin){
     if(isAdmin){
       // The user who typed the message is an admin
-      bot.startConversation(message, getNewAdmin);
+      bot.startConversation(message, function(err, convo) {
+        convo.ask('Who would you like to add as an admin? Or type *cancel* to quit.',[
+          {
+            pattern: 'cancel',
+            callback: function(response,convo) {
+              convo.say('Cancel.. got it!');
+              convo.next();
+            }
+          },
+          {
+            default: true,
+            callback: function(response, convo){
+              // getSlackUsers asyncronously gets all all of the Slack users that are
+              // the Slack team.
+              getSlackUsers(bot, message, function(allSlackUsers){
+                // Trimmed raw username who is getting the admin privileges (ex. UW392NNSK)
+                var newAdminTemp = String(response.text.match(/@([^\s]+)/g));
+                var newAdminId = newAdminTemp.substring(1, newAdminTemp.length-1);
+                var newAdmin = '<@' + newAdminId + '>';
+                var isValidUsername = findUserById(allSlackUsers, newAdminId);
+                if (!isValidUsername){
+                  // The username they entered wasn't valid
+                  convo.say('The username you entered isn\'t valid.');
+                  convo.repeat();
+                  convo.next();
+                } else{
+                  // The username they entered is valid
+                  checkIfUserExists(newAdminId, function(userExists){
+                    if (userExists){
+                      // The user is in the database
+                      // Validating that the user is not already set to be an admin
+                      checkIsAdminById(newAdminId, function(isAlreadyAdmin){
+                        if (isAlreadyAdmin){
+                          // The user that was entered is already an admin
+                          convo.say(newAdmin + ' is already an admin user in gemification.');
+                          convo.next();
+                        } else{
+                          // The user that was entered is not an admin, and should be set as an admin
+
+                          // Validate the what is about to happen with the user
+                          convo.ask({
+                            attachments:[
+                              {
+                                title: 'Are you sure you want to set ' + newAdmin + ' as an admin?',
+                                callback_id: '1',
+                                attachment_type: 'default',
+                                actions: [
+                                  {
+                                    "name": "yes",
+                                    "text": "Yes",
+                                    "value": "yes",
+                                    "type": "button"
+                                  },
+                                  {
+                                    "name": "no",
+                                    "text": "No",
+                                    "value": "no",
+                                    "type": "button"
+                                  }
+                                ]
+                              }
+                            ]
+                          },[
+                            {
+                              pattern: "yes",
+                              callback: function(reply, convo) {
+                                // Update the user as an admin
+                                DBPool.getConnection(function(err, connection){
+                                  if (err) throw err;
+                                  connection.query(
+                                    'UPDATE userGem SET isAdmin=\'1\' WHERE userId=\'' + newAdminId + '\';',
+                                    function(err, rows){
+                                    if (err) throw err;
+                                    convo.say(newAdmin + ' is now set as an admin.');
+                                    convo.next();
+                                  });
+                                });
+                              }
+                            },
+                            {
+                              pattern: "no",
+                              callback: function(reply, convo) {
+                                convo.say(newAdmin + ' will not be set as an admin.');
+                                convo.next();
+                              }
+                            },
+                            {
+                              default: true,
+                              callback: function(reply, convo) {
+                                // do nothing
+                              }
+                            }
+                          ]);
+                          convo.next();
+                        }
+                      });
+                    } else{
+                      // The user is not in the database
+
+                      // Now that we know the username entered is valid, and the
+                      // user isn't in the database, we should get the
+                      // username on the account from the id.
+                      var newAdminName = convertIdToName(allSlackUsers, newAdminId);
+
+                      // Validate the what is about to happen with the user
+                      convo.ask({
+                        attachments:[
+                          {
+                            title: 'Are you sure you want to set ' + newAdmin + ' as an admin?',
+                            callback_id: '2',
+                            attachment_type: 'default',
+                            actions: [
+                              {
+                                "name": "yes",
+                                "text": "Yes",
+                                "value": "yes",
+                                "type": "button"
+                              },
+                              {
+                                "name": "no",
+                                "text": "No",
+                                "value": "no",
+                                "type": "button"
+                              }
+                            ]
+                          }
+                        ]
+                      },[
+                        {
+                          pattern: "yes",
+                          callback: function(reply, convo) {
+                            // Create the user in the database as an admin
+                            DBPool.getConnection(function(err, connection){
+                              if (err) throw err;
+                              connection.query(
+                                'INSERT INTO userGem (userId, username, isAdmin) VALUES (\'' + newAdminId + '\', \'' + newAdminName + '\', TRUE)',
+                                function(err, rows){
+                                if (err) throw err;
+                                convo.say(newAdmin + ' is now set as an admin.');
+                                convo.next();
+                              });
+                            });
+                          }
+                        },
+                        {
+                          pattern: "no",
+                          callback: function(reply, convo) {
+                            convo.say(newAdmin + ' will not be set as an admin.');
+                            convo.next();
+                          }
+                        },
+                        {
+                          default: true,
+                          callback: function(reply, convo) {
+                            // do nothing
+                          }
+                        }
+                      ]);
+                      convo.next();
+                    }
+                  });
+                }
+             });
+           }
+          }
+        ]);
+      });
     } else{
       // The user who typed the message isn't an admin
       bot.reply(message, 'Nice try, wise guy, but you aren\'t an admin. Only admins can add new admins. :angry:');
     }
   });
 });
-
-getNewAdmin = function(response, convo){
-  convo.ask('Who would you like to add as an admin? Or type *cancel* to quit.',[
-    {
-      pattern: 'cancel',
-      callback: function(response,convo) {
-        convo.say('Cancel.. got it!');
-        convo.next();
-      }
-    },
-    {
-      default: true,
-      callback: validateNewAdmin(response, convo)
-    }
-  ]);
-}
-
-validateNewAdmin = function(response, convo){
-  // getSlackUsers asyncronously gets all all of the Slack users that are
-  // the Slack team.
-  getSlackUsers(bot, message, function(allSlackUsers){
-    // Trimmed raw username who is getting the admin privileges (ex. UW392NNSK)
-    var newAdminTemp = String(response.text.match(/@([^\s]+)/g));
-    var newAdminId = newAdminTemp.substring(1, newAdminTemp.length-1);
-    var newAdmin = '<@' + newAdminId + '>';
-    var isValidUsername = findUserById(allSlackUsers, newAdminId);
-    if (!isValidUsername){
-      // The username they entered wasn't valid
-      convo.say('The username you entered isn\'t valid.');
-      convo.repeat();
-      convo.next();
-    } else{
-      // The username they entered is valid
-      checkIfUserExists(newAdminId, function(userExists){
-        if (userExists){
-          // The user is in the database
-          // Validating that the user is not already set to be an admin
-          checkIsAdminById(newAdminId, function(isAlreadyAdmin){
-            if (isAlreadyAdmin){
-              // The user that was entered is already an admin
-              convo.say(newAdmin + ' is already an admin user in gemification.');
-              convo.next();
-            } else{
-              // The user is in the database and is not an admin, but should be set as an admin
-              validateUpdateToAdmin(response, convo, newAdminId, newAdmin);
-            }
-          });
-        } else{
-          // The user is not in the database
-          validateNewAdmin(reposnse, convo, newAdminId, newAdmin, allSlackUsers);
-        }
-      });
-    }
- });
-}
-
-validateUpdateToAdmin = function(response, convo, newAdminId, newAdmin){
-  // Validate the what is about to happen with the user
-  convo.ask({
-    attachments:[
-      {
-        title: 'Are you sure you want to set ' + newAdmin + ' as an admin?',
-        callback_id: '1',
-        attachment_type: 'default',
-        actions: [
-          {
-            "name": "yes",
-            "text": "Yes",
-            "value": "yes",
-            "type": "button"
-          },
-          {
-            "name": "no",
-            "text": "No",
-            "value": "no",
-            "type": "button"
-          }
-        ]
-      }
-    ]
-  },[
-    {
-      pattern: "yes",
-      callback: function(reply, convo) {
-        // Update the user as an admin
-        DBPool.getConnection(function(err, connection){
-          if (err) throw err;
-          connection.query(
-            'UPDATE userGem SET isAdmin=\'1\' WHERE userId=\'' + newAdminId + '\';',
-            function(err, rows){
-            if (err) throw err;
-            convo.say(newAdmin + ' is now set as an admin.');
-            convo.next();
-          });
-        });
-      }
-    },
-    {
-      pattern: "no",
-      callback: function(reply, convo) {
-        convo.say(newAdmin + ' will not be set as an admin.');
-        convo.next();
-      }
-    },
-    {
-      default: true,
-      callback: function(reply, convo) {
-        // do nothing
-      }
-    }
-  ]);
-  convo.next();
-}
-
-validateNewAdmin = function(reponse, convo, newAdminId, newAdmin, allSlackUsers){
-  // Now that we know the username entered is valid, and the
-  // user isn't in the database, we should get the
-  // username on the account from the id.
-  var newAdminName = convertIdToName(allSlackUsers, newAdminId);
-
-  // Validate the what is about to happen with the user
-  convo.ask({
-    attachments:[
-      {
-        title: 'Are you sure you want to set ' + newAdmin + ' as an admin?',
-        callback_id: '2',
-        attachment_type: 'default',
-        actions: [
-          {
-            "name": "yes",
-            "text": "Yes",
-            "value": "yes",
-            "type": "button"
-          },
-          {
-            "name": "no",
-            "text": "No",
-            "value": "no",
-            "type": "button"
-          }
-        ]
-      }
-    ]
-  },[
-    {
-      pattern: "yes",
-      callback: function(reply, convo) {
-        // Create the user in the database as an admin
-        DBPool.getConnection(function(err, connection){
-          if (err) throw err;
-          connection.query(
-            'INSERT INTO userGem (userId, username, isAdmin) VALUES (\'' + newAdminId + '\', \'' + newAdminName + '\', TRUE)',
-            function(err, rows){
-            if (err) throw err;
-            convo.say(newAdmin + ' is now set as an admin.');
-            convo.next();
-          });
-        });
-      }
-    },
-    {
-      pattern: "no",
-      callback: function(reply, convo) {
-        convo.say(newAdmin + ' will not be set as an admin.');
-        convo.next();
-      }
-    },
-    {
-      default: true,
-      callback: function(reply, convo) {
-        // do nothing
-      }
-    }
-  ]);
-  convo.next();
-}
