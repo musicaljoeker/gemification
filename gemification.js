@@ -511,6 +511,7 @@ controller.hears('clear gems','direct_message',function(bot,message) {
 // role. If the user isn't found in the database, the user is added as an admin. Only
 // existing admins can add new admins.
 controller.hears('add admin', 'direct_message', function(bot, message){
+  debugger;
   checkIsAdminByMessage(bot, message, function(isAdmin){
     if(isAdmin){
       // The user who typed the message is an admin
