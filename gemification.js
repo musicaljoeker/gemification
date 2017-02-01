@@ -131,7 +131,7 @@ function checkIfUserExists(id, callback){
       'SELECT id FROM userGem WHERE userId=\'' + id + '\';',
       function(err, rows){
       if (err) throw err;
-      if(rows[0] != null){
+      if(typeof rows[0] !== 'undefined'){
         // user exists
         callback(true);
       }else {
@@ -153,11 +153,16 @@ function checkIsAdminById(id, callback){
       'SELECT isAdmin FROM userGem WHERE userId=\'' + id + '\';',
       function(err, rows){
       if (err) throw err;
-      if(rows[0].isAdmin==1){
-        // user is an admin
-        callback(true);
-      }else {
-        // user isn't an admin
+      if(typeof rows[0] !== 'undefined'){
+        if(rows[0].isAdmin==1){
+          // user is an admin
+          callback(true);
+        }else {
+          // user isn't an admin
+          callback(false);
+        }
+      } else{
+        // user isn't in the database, and therefore isn't an admin
         callback(false);
       }
     });
