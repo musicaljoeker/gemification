@@ -105,11 +105,16 @@ function checkIsAdminByMessage(bot, message, callback){
       'SELECT isAdmin FROM userGem WHERE userId=\'' + message.user + '\';',
       function(err, rows){
       if (err) throw err;
-      if(rows[0].isAdmin==1){
-        // user is an admin
-        callback(true);
-      }else {
-        // user isn't an admin
+      if(typeof rows[0] !== 'undefined'){
+        if(rows[0].isAdmin==1){
+          // user is an admin
+          callback(true);
+        }else {
+          // user isn't an admin
+          callback(false);
+        }
+      } else{
+        // user isn't in the table, and therefore isn't an admin
         callback(false);
       }
     });
@@ -520,15 +525,18 @@ controller.hears('clear gems','direct_message',function(bot,message) {
 // role. If the user isn't found in the database, the user is added as an admin. Only
 // existing admins can add new admins.
 controller.hears('add admin', 'direct_message', function(bot, message){
+  console.log('-----starting add admin function-----');
   checkIsAdminByMessage(bot, message, function(isAdmin){
     if(isAdmin){
       // The user who typed the message is an admin
+      console.log('-----user is admin, starting conversation-----');
       bot.startConversation(message, function(err, convo) {
         convo.ask('Who would you like to add as an admin? Or type *cancel* to quit.',[
           {
             pattern: 'cancel',
             callback: function(response,convo) {
               // Convo end point
+              console.log('-----Conversation cancelled-----');
               convo.say('Cancel.. got it!');
               convo.next();
             }
@@ -546,6 +554,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                 var isValidUsername = findUserById(allSlackUsers, newAdminId);
                 if (!isValidUsername){
                   // The username they entered wasn't valid
+                  console.log('-----username not valid-----');
                   convo.say('The username you entered isn\'t valid.');
                   convo.repeat();
                   convo.next();
@@ -559,10 +568,12 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                         if (isAlreadyAdmin){
                           // The user that was entered is already an admin
                           // Convo end point
+                          console.log('-----user is already admin-----');
                           convo.say(newAdmin + ' is already an admin user in gemification.');
                           convo.next();
                         } else{
                           // The user that was entered is not an admin, and should be set as an admin
+                          console.log('-----User is not admin, should be set as admin-----');
                           convo.next();
                           // Validate the what is about to happen with the user
                           convo.ask({
@@ -591,6 +602,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                             {
                               pattern: "yes",
                               callback: function(reply, convo) {
+                                console.log('-----User validated yes, adding as an admin-----');
                                 // Update the user as an admin
                                 DBPool.getConnection(function(err, connection){
                                   if (err) throw err;
@@ -599,6 +611,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                                     function(err, rows){
                                     if (err) throw err;
                                     // Convo end point
+                                    console.log('-----Adding admin complete-----');
                                     convo.say(newAdmin + ' is now set as an admin.');
                                     convo.next();
                                   });
@@ -608,14 +621,17 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                             {
                               pattern: "no",
                               callback: function(reply, convo) {
+                                console.log('-----User said no, will not be set as admin-----');
                                 // Convo end point
                                 convo.say(newAdmin + ' will not be set as an admin.');
+                                console.log('-----User not an admin complete-----');
                                 convo.next();
                               }
                             },
                             {
                               default: true,
                               callback: function(reply, convo) {
+                                console.log('-----Default callback reached-----');
                                 // do nothing
                                 // Convo end point
                                 convo.next();
@@ -626,6 +642,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                       });
                     } else{
                       // The user is not in the database
+                      console.log('-----New admin is not in database, creating user and setting as admin-----');
 
                       // Now that we know the username entered is valid, and the
                       // user isn't in the database, we should get the
@@ -660,6 +677,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                         {
                           pattern: "yes",
                           callback: function(reply, convo) {
+                            console.log('-----User validated as admin-----');
                             // Create the user in the database as an admin
                             DBPool.getConnection(function(err, connection){
                               if (err) throw err;
@@ -668,6 +686,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                                 function(err, rows){
                                 if (err) throw err;
                                 // Convo end point
+                                console.log('-----User set admin complete-----');
                                 convo.say(newAdmin + ' is now set as an admin.');
                                 convo.next();
                               });
@@ -677,14 +696,17 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                         {
                           pattern: "no",
                           callback: function(reply, convo) {
+                            console.log('-----User said not to set as admin-----');
                             // Convo end point
                             convo.say(newAdmin + ' will not be set as an admin.');
+                            console.log('-----User not set admin complete-----');
                             convo.next();
                           }
                         },
                         {
                           default: true,
                           callback: function(reply, convo) {
+                            console.log('-----Default callback reached-----');
                             // do nothing
                             // Convo end point
                             convo.next();
@@ -704,4 +726,5 @@ controller.hears('add admin', 'direct_message', function(bot, message){
       bot.reply(message, 'Nice try, wise guy, but you aren\'t an admin. Only admins can add new admins. :angry:');
     }
   });
+  console.log('-----ending add admin function-----');
 });
