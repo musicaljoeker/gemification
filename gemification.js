@@ -624,7 +624,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                                   });
                                 });
                                 var endTimeDB = new Date(); // temporariy debug
-                                console.log('-----Update user into DB query time: %dms ms-----', (endTimeDB - startTimeDB) ); // temporariy debug
+                                console.log('-----Update user into DB query time: %dms-----', (endTimeDB - startTimeDB) ); // temporariy debug
                               }
                             },
                             {
@@ -702,7 +702,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                               });
                             });
                             var endTimeDB = new Date(); // temporariy debug
-                            console.log('-----Insert user into DB query time: %dms ms-----', (endTimeDB - startTimeDB) ); // temporariy debug
+                            console.log('-----Insert user into DB query time: %dms-----', (endTimeDB - startTimeDB) ); // temporariy debug
                           }
                         },
                         {
