@@ -40,7 +40,6 @@ if (!process.env.clientId || !process.env.clientSecret || !process.env.port || !
 var controller = Botkit.slackbot({
   json_file_store: './db_slackbutton_bot/',
   interactive_replies: true
-  // rtm_receive_messages: false, // disable rtm_receive_messages if you enable events api
 }).configureSlackApp(
   {
     clientId: process.env.clientId,
@@ -611,6 +610,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                               callback: function(reply, convo) {
                                 console.log('-----User validated yes, adding as an admin-----');
                                 // Update the user as an admin
+                                var startTimeDB = performance.now(); // temporariy debug
                                 DBPool.getConnection(function(err, connection){
                                   if (err) throw err;
                                   connection.query(
@@ -623,6 +623,8 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                                     convo.next();
                                   });
                                 });
+                                var endTimeDB = performance.now(); // temporariy debug
+                                console.log('-----Update user into DB query time: ' + (endTimeDB - startTimeDB) + 'ms-----'); // temporariy debug
                               }
                             },
                             {
@@ -686,6 +688,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                           callback: function(reply, convo) {
                             console.log('-----User validated as admin-----');
                             // Create the user in the database as an admin
+                            var startTimeDB = performance.now(); // temporariy debug
                             DBPool.getConnection(function(err, connection){
                               if (err) throw err;
                               connection.query(
@@ -698,6 +701,8 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                                 convo.next();
                               });
                             });
+                            var endTimeDB = performance.now(); // temporariy debug
+                            console.log('-----Insert user into DB query time: ' + (endTimeDB - startTimeDB) + 'ms-----'); // temporariy debug
                           }
                         },
                         {
@@ -733,5 +738,4 @@ controller.hears('add admin', 'direct_message', function(bot, message){
       bot.reply(message, 'Nice try, wise guy, but you aren\'t an admin. Only admins can add new admins. :angry:');
     }
   });
-  console.log('-----ending add admin function-----');
 });
