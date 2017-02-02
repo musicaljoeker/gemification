@@ -103,6 +103,7 @@ function checkIsAdminByMessage(bot, message, callback){
     connection.query(
       'SELECT isAdmin FROM userGem WHERE userId=\'' + message.user + '\';',
       function(err, rows){
+      connection.release();
       if (err) throw err;
       if(typeof rows[0] !== 'undefined'){
         if(rows[0].isAdmin==1){
@@ -129,6 +130,7 @@ function checkIfUserExists(id, callback){
     connection.query(
       'SELECT id FROM userGem WHERE userId=\'' + id + '\';',
       function(err, rows){
+      connection.release();
       if (err) throw err;
       if(typeof rows[0] !== 'undefined'){
         // user exists
@@ -151,6 +153,7 @@ function checkIsAdminById(id, callback){
     connection.query(
       'SELECT isAdmin FROM userGem WHERE userId=\'' + id + '\';',
       function(err, rows){
+      connection.release();
       if (err) throw err;
       if(typeof rows[0] !== 'undefined'){
         if(rows[0].isAdmin==1){
@@ -616,6 +619,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                                   connection.query(
                                     'UPDATE userGem SET isAdmin=\'1\' WHERE userId=\'' + newAdminId + '\';',
                                     function(err, rows){
+                                    connection.release();
                                     if (err) throw err;
                                     // Convo end point
                                     console.log('-----Adding admin complete-----');
@@ -694,6 +698,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                               connection.query(
                                 'INSERT INTO userGem (userId, username, isAdmin) VALUES (\'' + newAdminId + '\', \'' + newAdminName + '\', TRUE)',
                                 function(err, rows){
+                                connection.release();
                                 if (err) throw err;
                                 // Convo end point
                                 console.log('-----User set admin complete-----');
