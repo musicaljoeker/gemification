@@ -610,7 +610,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                               callback: function(reply, convo) {
                                 console.log('-----User validated yes, adding as an admin-----');
                                 // Update the user as an admin
-                                var startTimeDB = performance.now(); // temporariy debug
+                                var startTimeDB = new Date(); // temporariy debug
                                 DBPool.getConnection(function(err, connection){
                                   if (err) throw err;
                                   connection.query(
@@ -623,8 +623,8 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                                     convo.next();
                                   });
                                 });
-                                var endTimeDB = performance.now(); // temporariy debug
-                                console.log('-----Update user into DB query time: ' + (endTimeDB - startTimeDB) + 'ms-----'); // temporariy debug
+                                var endTimeDB = new Date(); // temporariy debug
+                                console.log('-----Update user into DB query time: %dms ms-----', (endTimeDB - startTimeDB) ); // temporariy debug
                               }
                             },
                             {
@@ -688,7 +688,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                           callback: function(reply, convo) {
                             console.log('-----User validated as admin-----');
                             // Create the user in the database as an admin
-                            var startTimeDB = performance.now(); // temporariy debug
+                            var startTimeDB = new Date(); // temporariy debug
                             DBPool.getConnection(function(err, connection){
                               if (err) throw err;
                               connection.query(
@@ -701,8 +701,8 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                                 convo.next();
                               });
                             });
-                            var endTimeDB = performance.now(); // temporariy debug
-                            console.log('-----Insert user into DB query time: ' + (endTimeDB - startTimeDB) + 'ms-----'); // temporariy debug
+                            var endTimeDB = new Date(); // temporariy debug
+                            console.log('-----Insert user into DB query time: %dms ms-----', (endTimeDB - startTimeDB) ); // temporariy debug
                           }
                         },
                         {
