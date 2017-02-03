@@ -930,12 +930,12 @@ controller.hears('help', ['direct_mention', 'direct_message', 'ambient'], functi
   helpStr += 'In a channel, type "@gemification leaderboard"\n\n';
   helpStr += '*Admin commands (these can only be run if you\'re an admin)*\n';
   helpStr += '1) How to clear the gem leaderboard\n';
-  helpStr += 'Type "clear gems"\n\n';
+  helpStr += 'In a direct message, type "clear gems"\n\n';
   helpStr += '2) How to list the current admins in Gemification\n';
-  helpStr += 'Type "list admins"\n\n';
+  helpStr += 'In a direct message, type "list admins"\n\n';
   helpStr += '3) How to add an admin to Gemification\n';
-  helpStr += 'Type "add admin" and follow the prompts\n\n';
+  helpStr += 'In a direct message, type "add admin" and follow the prompts\n\n';
   helpStr += '4) How to remove an admin from Gemification\n';
-  helpStr += 'Type "remove admin" and follow the prompts';
+  helpStr += 'In a direct message, type "remove admin" and follow the prompts';
   bot.reply(message, helpStr);
 });
