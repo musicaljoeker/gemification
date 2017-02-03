@@ -723,23 +723,31 @@ controller.hears('add admin', 'direct_message', function(bot, message){
 });
 
 controller.hears('list admin', 'direct_message', function(bot, message){
-  DBPool.getConnection(function(err, connection){
-    if (err) throw err;
-    connection.query(
-      'SELECT username FROM userGem WHERE isAdmin=\'1\';', function(err, rows){
-      connection.release();
-      if (err) throw err;
-      var adminsStr = 'List of admins:\n';
-      for(var i=0; i<rows.length; i++){
-        if(i==rows.length-1){
-          adminsStr += rows[i].username;
-        } else{
-          adminsStr += rows[i].username + "\n";
-        }
-      }
-      bot.reply(message, adminsStr);
-    });
-  });
+  checkIsAdminByMessage(bot, message, function(isAdmin){
+    if(isAdmin){
+      // The user who typed the message is an admin
+      DBPool.getConnection(function(err, connection){
+        if (err) throw err;
+        connection.query(
+          'SELECT username FROM userGem WHERE isAdmin=\'1\';', function(err, rows){
+          connection.release();
+          if (err) throw err;
+          var adminsStr = 'Current list of admins:\n';
+          for(var i=0; i<rows.length; i++){
+            if(i==rows.length-1){
+              adminsStr += "@" + rows[i].username;
+            } else{
+              adminsStr += "@" + rows[i].username + "\n";
+            }
+          }
+          bot.reply(message, adminsStr);
+        });
+      });
+    } else{
+      // User who typed the message isn't an admin
+      bot.reply(message, 'Nice try, wise guy, but you aren\'t an admin. Only admins can view current admins. :angry:');
+    }
+  }
 });
 
 // This function removes an admin status for the user if the user has admin status
