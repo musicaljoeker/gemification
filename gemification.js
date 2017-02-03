@@ -175,7 +175,6 @@ function checkIsAdminById(id, callback){
 // and tells you if user id entered is a valid user in the Slack channel or not.
 // A boolean value is returned.
 function findUserById(allSlackUsers, id){
-  console.log('-----inside findUserById-----');
   var isFound = false;
   for(var i=0; i<allSlackUsers.length; i++){
     if(allSlackUsers[i].id == id){
@@ -183,7 +182,6 @@ function findUserById(allSlackUsers, id){
       break;
     }
   }
-  console.log('-----ending findUserById-----');
   return isFound;
 }
 
