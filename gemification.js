@@ -219,7 +219,7 @@ function listAdmins(bot, message){
 
 // This function checks if the removeAdminId that is passed in is the last admin
 // in the database. After it performs the query, it executes the callback function.
-function isLastAdmin(removeAdminId, callback){
+function checkIsLastAdmin(removeAdminId, callback){
   DBPool.getConnection(function(err, connection){
     if (err) throw err;
     connection.query(
@@ -810,14 +810,14 @@ controller.hears('remove admin', 'direct_message', function(bot, message){
                 var removeAdminTemp = String(response.text.match(/@([^\s]+)/g));
                 var removeAdminId = removeAdminTemp.substring(1, removeAdminTemp.length-1);
                 var removeAdmin = '<@' + removeAdminId + '>';
-                isLastAdmin(removeAdminId, function(lastAdminBool){
+                checkIsLastAdmin(removeAdminId, function(islastAdmin){
                   var isValidUsername = findUserById(allSlackUsers, removeAdminId);
                   if (!isValidUsername){
                     // The username they entered wasn't valid
                     convo.say('The username you entered isn\'t valid.');
                     convo.repeat();
                     convo.next();
-                  } else if(lastAdminBool){
+                  } else if(islastAdmin){
                       // User is trying to remove himself as the last admin user
                       convo.say('You are trying to remove yourself, but you are the last admin in this channel. Please add a new admin before removing yourself.');
                   } else{
@@ -867,7 +867,7 @@ controller.hears('remove admin', 'direct_message', function(bot, message){
                                       connection.release();
                                       if (err) throw err;
                                       // Convo end point
-                                      convo.say(removeAdmin + ' is now removed as an admin.');
+                                      convo.say(removeAdmin + ' is now removed from being admin.');
                                       convo.next();
                                     });
                                   });
