@@ -921,7 +921,7 @@ controller.hears('remove admin', 'direct_message', function(bot, message){
 // This function gives a bit of documentation help to the user
 // It listens for a direct message or direct me
 controller.hears('help', ['direct_mention', 'direct_message', 'ambient'], function(bot, message){
-  var helpStr = 'Need some help? We all do sometimes.\nHere are a list of commands that you can use to interact with Gemification:\n\n';
+  var helpStr = 'Need some help? We all do sometimes...\nHere are a list of commands that you can use to interact with Gemification:\n\n';
   helpStr += 'Public commands:\n';
   helpStr += '*How to give someone a gem :gem:*\n';
   helpStr += 'Type ":gem: [@username] for [reason]"\n\n';
