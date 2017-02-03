@@ -924,7 +924,7 @@ controller.hears('help', ['direct_mention', 'direct_message', 'ambient'], functi
   var helpStr = 'Need some help? We all do sometimes.\nHere are a list of commands that you can use to interact with Gemification:\n\n';
   helpStr += 'Public commands:\n';
   helpStr += '*How to give someone a gem :gem:*\n';
-  helpStr += ':gem: [@username] for [reason]\n\n';
+  helpStr += 'Type ":gem: [@username] for [reason]"\n\n';
   helpStr += '*How to show the leaderboard*\n';
   helpStr += 'In a direct message, type "leaderboard"\n';
   helpStr += 'In a channel, type "@gemification leaderboard"\n';
