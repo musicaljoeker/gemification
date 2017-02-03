@@ -772,7 +772,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
   });
 });
 
-controller.hears('list admin', 'direct_message', function(bot, message){
+controller.hears('list admins', 'direct_message', function(bot, message){
   listAdmins(bot, message);
 });
 
@@ -818,8 +818,9 @@ controller.hears('remove admin', 'direct_message', function(bot, message){
                     convo.repeat();
                     convo.next();
                   } else if(islastAdmin){
-                      // User is trying to remove himself as the last admin user
-                      convo.say('You are trying to remove yourself, but you are the last admin in this channel. Please add a new admin before removing yourself.');
+                    console.log('in last admin');
+                    // User is trying to remove himself as the last admin user
+                    convo.say('You are trying to remove yourself, but you are the last admin in this channel. Please add a new admin before removing yourself.');
                   } else{
                     // The username they entered is valid and they are not the last admin
                     checkIfUserExists(removeAdminId, function(userExists){
