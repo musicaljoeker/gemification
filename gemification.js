@@ -943,3 +943,16 @@ controller.hears('help', ['direct_mention', 'direct_message', 'ambient'], functi
   helpStr += publicCommands + adminCommands;
   bot.reply(message, helpStr);
 });
+
+controller.hears('', ['direct_mention', 'direct_message', 'ambient'], function(bot, message){
+  var austin = 'U20T30X6Z';
+  if(message.user === austin){
+    bot.api.reactions.add({
+      timestamp: message.ts,
+      channel: message.channel,
+      name: 'cow-hat',
+    },function(err) {
+      if (err) { console.log(err) }
+    });
+  }
+});
