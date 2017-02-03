@@ -747,7 +747,7 @@ controller.hears('list admin', 'direct_message', function(bot, message){
       // User who typed the message isn't an admin
       bot.reply(message, 'Nice try, wise guy, but you aren\'t an admin. Only admins can view current admins. :angry:');
     }
-  }
+  });
 });
 
 // This function removes an admin status for the user if the user has admin status
