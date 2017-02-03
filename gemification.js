@@ -922,20 +922,20 @@ controller.hears('remove admin', 'direct_message', function(bot, message){
 // It listens for a direct message or direct me
 controller.hears('help', ['direct_mention', 'direct_message', 'ambient'], function(bot, message){
   var helpStr = 'Need some help? We all do sometimes...\nHere are a list of commands that you can use to interact with Gemification:\n\n';
-  helpStr += 'Public commands:\n';
-  helpStr += '*How to give someone a gem :gem:*\n';
+  helpStr += '*Public commands*\n';
+  helpStr += '1) How to give someone a gem :gem:\n';
   helpStr += 'Type ":gem: [@username] for [reason]"\n\n';
-  helpStr += '*How to show the leaderboard*\n';
+  helpStr += '2) How to show the leaderboard\n';
   helpStr += 'In a direct message, type "leaderboard"\n';
   helpStr += 'In a channel, type "@gemification leaderboard"\n\n';
-  helpStr += 'Admin commands (these can only be run if you\'re an admin):\n';
-  helpStr += '*How to clear the gem leaderboard*\n';
+  helpStr += '*Admin commands (these can only be run if you\'re an admin)*\n';
+  helpStr += '1) How to clear the gem leaderboard\n';
   helpStr += 'Type "clear gems"\n\n';
-  helpStr += '*How to list the current admins in Gemification*\n';
+  helpStr += '2) How to list the current admins in Gemification\n';
   helpStr += 'Type "list admins"\n\n';
-  helpStr += '*How to add an admin to Gemification*\n';
+  helpStr += '3) How to add an admin to Gemification\n';
   helpStr += 'Type "add admin" and follow the prompts\n\n';
-  helpStr += '*How to remove an admin from Gemification*\n';
+  helpStr += '4) How to remove an admin from Gemification\n';
   helpStr += 'Type "remove admin" and follow the prompts';
   bot.reply(message, helpStr);
 });
