@@ -213,8 +213,29 @@ function listAdmins(bot, message){
       });
     } else{
       // User who typed the message isn't an admin
-      bot.reply(message, 'Nice try, wise guy, but you aren\'t an admin. Only admins can view current admins. :angry:');
+      bot.reply(message, 'Nice try, wise guy, but you aren\'t an admin. Only ' +
+      'admins can view current admins. :angry:');
     }
+  });
+}
+
+// This function checks if the removeAdminId that is passed in is the last admin
+// in the database. After it performs the query, it executes the callback function.
+function isLastAdmin(removeAdminId, callback){
+  DBPool.getConnection(function(err, connection){
+    if (err) throw err;
+    connection.query(
+      'SELECT COUNT(userId) AS admin_count FROM userGem WHERE isAdmin=\'1\';', function(err, rows){
+      connection.release();
+      if (err) throw err;
+      if(rows[0].admin_count > 1){
+        // User isn't the last admin
+        callback(false);
+      } else{
+        // User is the last admin
+        callback(true);
+      }
+    });
   });
 }
 
@@ -791,95 +812,100 @@ controller.hears('remove admin', 'direct_message', function(bot, message){
                 var removeAdminTemp = String(response.text.match(/@([^\s]+)/g));
                 var removeAdminId = removeAdminTemp.substring(1, removeAdminTemp.length-1);
                 var removeAdmin = '<@' + removeAdminId + '>';
-                var isValidUsername = findUserById(allSlackUsers, removeAdminId);
-                if (!isValidUsername){
-                  // The username they entered wasn't valid
-                  convo.say('The username you entered isn\'t valid.');
-                  convo.repeat();
-                  convo.next();
-                } else{
-                  // The username they entered is valid
-                  checkIfUserExists(removeAdminId, function(userExists){
-                    if (userExists){
-                      // The user is in the database
-                      // Validating that the user is not already set to be an admin
-                      checkIsAdminById(removeAdminId, function(isAlreadyAdmin){
-                        if (isAlreadyAdmin){
-                          // The user that was entered is already an admin and should be removed
-                          // Convo end point
-                          convo.next();
-                          // Validate the what is about to happen with the user
-                          convo.ask({
-                            attachments:[
+                isLastAdmin(removeAdminId, function(lastAdminBool){
+                  var isValidUsername = findUserById(allSlackUsers, removeAdminId);
+                  if (!isValidUsername){
+                    // The username they entered wasn't valid
+                    convo.say('The username you entered isn\'t valid.');
+                    convo.repeat();
+                    convo.next();
+                  } else if(lastAdminBool){
+                      // User is trying to remove himself as the last admin user
+                      convo.say('You are trying to remove yourself, but you are the last admin in this channel. Please add a new admin before removing yourself.');
+                  } else{
+                    // The username they entered is valid and they are not the last admin
+                    checkIfUserExists(removeAdminId, function(userExists){
+                      if (userExists){
+                        // The user is in the database
+                        // Validating that the user is not already set to be an admin
+                        checkIsAdminById(removeAdminId, function(isAlreadyAdmin){
+                          if (isAlreadyAdmin){
+                            // The user that was entered is already an admin and should be removed
+                            // Convo end point
+                            convo.next();
+                            // Validate the what is about to happen with the user
+                            convo.ask({
+                              attachments:[
+                                {
+                                  title: 'Are you sure you want to remove ' + removeAdmin + ' as an admin?',
+                                  callback_id: '1',
+                                  attachment_type: 'default',
+                                  actions: [
+                                    {
+                                      "name": "yes",
+                                      "text": "Yes",
+                                      "value": "yes",
+                                      "type": "button"
+                                    },
+                                    {
+                                      "name": "no",
+                                      "text": "No",
+                                      "value": "no",
+                                      "type": "button"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },[
                               {
-                                title: 'Are you sure you want to remove ' + removeAdmin + ' as an admin?',
-                                callback_id: '1',
-                                attachment_type: 'default',
-                                actions: [
-                                  {
-                                    "name": "yes",
-                                    "text": "Yes",
-                                    "value": "yes",
-                                    "type": "button"
-                                  },
-                                  {
-                                    "name": "no",
-                                    "text": "No",
-                                    "value": "no",
-                                    "type": "button"
-                                  }
-                                ]
-                              }
-                            ]
-                          },[
-                            {
-                              pattern: "yes",
-                              callback: function(reply, convo) {
-                                // Update the user as an admin
-                                DBPool.getConnection(function(err, connection){
-                                  if (err) throw err;
-                                  connection.query(
-                                    'UPDATE userGem SET isAdmin=\'0\' WHERE userId=\'' + removeAdminId + '\';',
-                                    function(err, rows){
-                                    connection.release();
+                                pattern: "yes",
+                                callback: function(reply, convo) {
+                                  // Update the user as an admin
+                                  DBPool.getConnection(function(err, connection){
                                     if (err) throw err;
-                                    // Convo end point
-                                    convo.say(removeAdmin + ' is now removed as an admin.');
-                                    convo.next();
+                                    connection.query(
+                                      'UPDATE userGem SET isAdmin=\'0\' WHERE userId=\'' + removeAdminId + '\';',
+                                      function(err, rows){
+                                      connection.release();
+                                      if (err) throw err;
+                                      // Convo end point
+                                      convo.say(removeAdmin + ' is now removed as an admin.');
+                                      convo.next();
+                                    });
                                   });
-                                });
+                                }
+                              },
+                              {
+                                pattern: "no",
+                                callback: function(reply, convo) {
+                                  // Convo end point
+                                  convo.say(removeAdmin + ' will not be removed from being an admin.');
+                                  convo.next();
+                                }
+                              },
+                              {
+                                default: true,
+                                callback: function(reply, convo) {
+                                  // do nothing
+                                  // Convo end point
+                                  convo.next();
+                                }
                               }
-                            },
-                            {
-                              pattern: "no",
-                              callback: function(reply, convo) {
-                                // Convo end point
-                                convo.say(removeAdmin + ' will not be removed from being an admin.');
-                                convo.next();
-                              }
-                            },
-                            {
-                              default: true,
-                              callback: function(reply, convo) {
-                                // do nothing
-                                // Convo end point
-                                convo.next();
-                              }
-                            }
-                          ]);
-                        } else{
-                          // The user that was entered is not an admin, and should not be set as an admin
-                          convo.say(removeAdmin + ' is currently not an admin.');
-                          convo.next();
-                        }
-                      });
-                    } else{
-                      // The user is not in the database and therefore isn't an admin
-                      convo.say(removeAdmin + ' is currently not an admin.');
-                      convo.next();
-                    }
-                  });
-                }
+                            ]);
+                          } else{
+                            // The user that was entered is not an admin, and should not be set as an admin
+                            convo.say(removeAdmin + ' is currently not an admin.');
+                            convo.next();
+                          }
+                        });
+                      } else{
+                        // The user is not in the database and therefore isn't an admin
+                        convo.say(removeAdmin + ' is currently not an admin.');
+                        convo.next();
+                      }
+                    });
+                  }
+                });
              });
            }
           }
