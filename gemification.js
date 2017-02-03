@@ -940,6 +940,6 @@ controller.hears('help', ['direct_mention', 'direct_message', 'ambient'], functi
   adminCommands += '4) How to remove an admin from Gemification\n';
   adminCommands += 'In a direct message, type "remove admin" and follow the prompts';
 
-  var helpStr += publicCommands + adminCommands;
+  helpStr += publicCommands + adminCommands;
   bot.reply(message, helpStr);
 });
