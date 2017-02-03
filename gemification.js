@@ -821,6 +821,7 @@ controller.hears('remove admin', 'direct_message', function(bot, message){
                     console.log('in last admin');
                     // User is trying to remove himself as the last admin user
                     convo.say('You are trying to remove yourself, but you are the last admin in this channel. Please add a new admin before removing yourself.');
+                    convo.next();
                   } else{
                     // The username they entered is valid and they are not the last admin
                     checkIfUserExists(removeAdminId, function(userExists){
