@@ -946,7 +946,7 @@ controller.hears('help', ['direct_mention', 'direct_message', 'ambient'], functi
 
 // This method causes the bot to react with a cow-hat to everything Austin says
 controller.hears('', ['direct_mention', 'direct_message', 'ambient'], function(bot, message){
-  var austin = 'U20KAQLR3';
+  var austin = 'U20T30X6Z';
   if(message.user === austin){
     bot.api.reactions.add({
       timestamp: message.ts,
