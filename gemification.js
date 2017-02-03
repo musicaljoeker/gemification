@@ -777,6 +777,7 @@ controller.hears('list admins', 'direct_message', function(bot, message){
 });
 
 // This function removes an admin status for the user if the user has admin status
+// There is a check to make sure you don't remove the last admin user
 controller.hears('remove admin', 'direct_message', function(bot, message){
   checkIsAdminByMessage(bot, message, function(isAdmin){
     if(isAdmin){
@@ -818,7 +819,6 @@ controller.hears('remove admin', 'direct_message', function(bot, message){
                     convo.repeat();
                     convo.next();
                   } else if(islastAdmin){
-                    console.log('in last admin');
                     // User is trying to remove himself as the last admin user
                     convo.say('You are trying to remove yourself, but you are the last admin in this channel. Please add a new admin before removing yourself.');
                     convo.next();
@@ -869,7 +869,7 @@ controller.hears('remove admin', 'direct_message', function(bot, message){
                                       connection.release();
                                       if (err) throw err;
                                       // Convo end point
-                                      convo.say(removeAdmin + ' is now removed from being admin.');
+                                      convo.say(removeAdmin + ' is now removed from being an admin.');
                                       convo.next();
                                     });
                                   });
@@ -916,4 +916,13 @@ controller.hears('remove admin', 'direct_message', function(bot, message){
       bot.reply(message, 'Nice try, wise guy, but you aren\'t an admin. Only admins can add new admins. :angry:');
     }
   });
+});
+
+// This function gives a bit of documentation help to the user
+// It listens for a direct message or direct me
+controller.hears('help', ['direct_mention', 'direct_message', 'ambient'], function(bot, message){
+  var helpStr = 'Need some help? We all do sometimes.\nHere are a list of commands that you can use to interact with Gemification:\n';
+  helpStr += 'How to give a gem :gem::\n';
+  helpStr += '*:gem: [@username] for [reason]*';
+  bot.reply(message, helpStr);
 });
