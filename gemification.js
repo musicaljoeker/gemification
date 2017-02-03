@@ -922,20 +922,24 @@ controller.hears('remove admin', 'direct_message', function(bot, message){
 // It listens for a direct message or direct me
 controller.hears('help', ['direct_mention', 'direct_message', 'ambient'], function(bot, message){
   var helpStr = 'Need some help? We all do sometimes...\nHere are a list of commands that you can use to interact with Gemification:\n\n';
-  helpStr += '*Public commands*\n';
-  helpStr += '1) How to give someone a gem :gem:\n';
-  helpStr += 'Type ":gem: [@username] for [reason]"\n\n';
-  helpStr += '2) How to show the leaderboard\n';
-  helpStr += 'In a direct message, type "leaderboard"\n';
-  helpStr += 'In a channel, type "@gemification leaderboard"\n\n';
-  helpStr += '*Admin commands (these can only be run if you\'re an admin)*\n';
-  helpStr += '1) How to clear the gem leaderboard\n';
-  helpStr += 'In a direct message, type "clear gems"\n\n';
-  helpStr += '2) How to list the current admins in Gemification\n';
-  helpStr += 'In a direct message, type "list admins"\n\n';
-  helpStr += '3) How to add an admin to Gemification\n';
-  helpStr += 'In a direct message, type "add admin" and follow the prompts\n\n';
-  helpStr += '4) How to remove an admin from Gemification\n';
-  helpStr += 'In a direct message, type "remove admin" and follow the prompts';
+
+  var publicCommands = '*Public commands*\n';
+  publicCommands += '1) How to give someone a gem :gem:\n';
+  publicCommands += 'Type ":gem: [@username] for [reason]"\n\n';
+  publicCommands += '2) How to show the leaderboard\n';
+  publicCommands += 'In a direct message, type "leaderboard"\n';
+  publicCommands += 'In a channel, type "@gemification leaderboard"\n\n';
+
+  var adminCommands = '*Admin commands (these can only be run if you\'re an admin)*\n';
+  adminCommands += '1) How to clear the gem leaderboard\n';
+  adminCommands += 'In a direct message, type "clear gems"\n\n';
+  adminCommands += '2) How to list the current admins in Gemification\n';
+  adminCommands += 'In a direct message, type "list admins"\n\n';
+  adminCommands += '3) How to add an admin to Gemification\n';
+  adminCommands += 'In a direct message, type "add admin" and follow the prompts\n\n';
+  adminCommands += '4) How to remove an admin from Gemification\n';
+  adminCommands += 'In a direct message, type "remove admin" and follow the prompts';
+
+  var helpStr += publicCommands + adminCommands;
   bot.reply(message, helpStr);
 });
