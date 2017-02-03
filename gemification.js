@@ -187,6 +187,37 @@ function findUserById(allSlackUsers, id){
   return isFound;
 }
 
+// This function first checks if the user is an admin, if they are it performs a
+// query grabbing all userIds who are currently admins to gemification, then
+// messages back a parsed list of admins.
+function listAdmins(bot, message){
+  checkIsAdminByMessage(bot, message, function(isAdmin){
+    if(isAdmin){
+      // The user who typed the message is an admin
+      DBPool.getConnection(function(err, connection){
+        if (err) throw err;
+        connection.query(
+          'SELECT userId FROM userGem WHERE isAdmin=\'1\';', function(err, rows){
+          connection.release();
+          if (err) throw err;
+          var adminsStr = 'Current list of admins:\n';
+          for(var i=0; i<rows.length; i++){
+            if(i==rows.length-1){
+              adminsStr += '<@' + rows[i].userId + '>';
+            } else{
+              adminsStr += '<@' + rows[i].userId + '>\n';
+            }
+          }
+          bot.reply(message, adminsStr);
+        });
+      });
+    } else{
+      // User who typed the message isn't an admin
+      bot.reply(message, 'Nice try, wise guy, but you aren\'t an admin. Only admins can view current admins. :angry:');
+    }
+  });
+}
+
 /*~~~~~~~~~~~~~~~~~~~~End helper functions~~~~~~~~~~~~~~~~~~~~*/
 
 controller.setupWebserver(process.env.port,function(err,webserver) {
@@ -723,31 +754,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
 });
 
 controller.hears('list admin', 'direct_message', function(bot, message){
-  checkIsAdminByMessage(bot, message, function(isAdmin){
-    if(isAdmin){
-      // The user who typed the message is an admin
-      DBPool.getConnection(function(err, connection){
-        if (err) throw err;
-        connection.query(
-          'SELECT userId FROM userGem WHERE isAdmin=\'1\';', function(err, rows){
-          connection.release();
-          if (err) throw err;
-          var adminsStr = 'Current list of admins:\n';
-          for(var i=0; i<rows.length; i++){
-            if(i==rows.length-1){
-              adminsStr += '<@' + rows[i].userId + '>';
-            } else{
-              adminsStr += '<@' + rows[i].userId + '>\n';
-            }
-          }
-          bot.reply(message, adminsStr);
-        });
-      });
-    } else{
-      // User who typed the message isn't an admin
-      bot.reply(message, 'Nice try, wise guy, but you aren\'t an admin. Only admins can view current admins. :angry:');
-    }
-  });
+  listAdmins(bot, message);
 });
 
 // This function removes an admin status for the user if the user has admin status
