@@ -722,19 +722,45 @@ controller.hears('add admin', 'direct_message', function(bot, message){
   });
 });
 
+controller.hears('list admin', 'direct_message', function(bot, message){
+  DBPool.getConnection(function(err, connection){
+    if (err) throw err;
+    connection.query(
+      'SELECT username FROM userGem WHERE isAdmin=\'1\';', function(err, rows){
+      connection.release();
+      if (err) throw err;
+      var adminsStr = 'List of admins:\n';
+      for(var i=0; i<rows.length; i++){
+        if(i==rows.length-1){
+          adminsStr += rows[i].username;
+        } else{
+          adminsStr += rows[i].username + "\n";
+        }
+      }
+      bot.reply(message, adminsStr);
+    });
+  });
+});
+
 // This function removes an admin status for the user if the user has admin status
 controller.hears('remove admin', 'direct_message', function(bot, message){
   checkIsAdminByMessage(bot, message, function(isAdmin){
     if(isAdmin){
       // The user who typed the message is an admin
       bot.startConversation(message, function(err, convo) {
-        convo.ask('Who would you like to remove as an admin? Or type *cancel* to quit.',[
+        convo.ask('Who would you like to remove as an admin? Type *list* to show current admins or *cancel* to quit.',[
           {
             pattern: 'cancel',
             callback: function(response,convo) {
               // Convo end point
               convo.say('Cancel.. got it!');
               convo.next();
+            }
+          },
+          {
+            pattern: 'list',
+            callback: function(response, convo){
+
             }
           },
           {
@@ -810,7 +836,7 @@ controller.hears('remove admin', 'direct_message', function(bot, message){
                               pattern: "no",
                               callback: function(reply, convo) {
                                 // Convo end point
-                                convo.say(removeAdmin + ' will not be removed as an admin.');
+                                convo.say(removeAdmin + ' will not be removed from being an admin.');
                                 convo.next();
                               }
                             },
