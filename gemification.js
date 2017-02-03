@@ -200,7 +200,7 @@ function listAdmins(bot, message){
           'SELECT userId FROM userGem WHERE isAdmin=\'1\';', function(err, rows){
           connection.release();
           if (err) throw err;
-          var adminsStr = 'Current list of admins:\n';
+          var adminsStr = 'List of current admins:\n';
           for(var i=0; i<rows.length; i++){
             if(i==rows.length-1){
               adminsStr += '<@' + rows[i].userId + '>';
@@ -775,7 +775,10 @@ controller.hears('remove admin', 'direct_message', function(bot, message){
           {
             pattern: 'list',
             callback: function(response, convo){
-
+              // Listing the current admin
+              listAdmins(bot, message);
+              convo.repeat();
+              convo.next();
             }
           },
           {
