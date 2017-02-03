@@ -729,15 +729,15 @@ controller.hears('list admin', 'direct_message', function(bot, message){
       DBPool.getConnection(function(err, connection){
         if (err) throw err;
         connection.query(
-          'SELECT username FROM userGem WHERE isAdmin=\'1\';', function(err, rows){
+          'SELECT userId FROM userGem WHERE isAdmin=\'1\';', function(err, rows){
           connection.release();
           if (err) throw err;
           var adminsStr = 'Current list of admins:\n';
           for(var i=0; i<rows.length; i++){
             if(i==rows.length-1){
-              adminsStr += "@" + rows[i].username;
+              adminsStr += '<@' + rows[i].userId + '>';
             } else{
-              adminsStr += "@" + rows[i].username + "\n";
+              adminsStr += '<@' + rows[i].userId + '>\n';
             }
           }
           bot.reply(message, adminsStr);
