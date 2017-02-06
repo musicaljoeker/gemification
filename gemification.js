@@ -466,6 +466,8 @@ controller.hears(':gem:','ambient',function(bot,message) {
                     'Gem Receiver Username: ' + gemReceiverUsername
                   );
 
+        // Truncating the reason statement to 250 characters to fit in the database
+        reason = reason.substring(0, 250);
         // Getting the database pool
         DBPool.getConnection(function(err, connection){
           if (err) throw err;
