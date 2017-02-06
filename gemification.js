@@ -527,7 +527,7 @@ controller.hears('leaderboard',['direct_mention','direct_message'],function(bot,
   DBPool.getConnection(function(err, connection){
     if (err) throw err;
     connection.query(
-      'SELECT username, currentGems FROM userGem WHERE currentGems > 0 ORDER BY currentGems DESC LIMIT 10',
+      'SELECT username, currentGems FROM userGem WHERE currentGems > 0 ORDER BY currentGems DESC',
       function(err, rows){
       if (err) throw err;
       // Done with connection
@@ -538,8 +538,8 @@ controller.hears('leaderboard',['direct_mention','direct_message'],function(bot,
       } else{
         // Parsing the leaderboard, looping thru everybody returned in the query
         var leaderboardStr = 'Leaderboard:\n';
-        for(var i=0; i<rows.length; i++){
-          if(i==rows.length-1){
+        for(var i=0; i<10; i++){
+          if(i==9){
             leaderboardStr += (i+1) + ".) " + rows[i].username + " " + rows[i].currentGems;
           } else{
             leaderboardStr += (i+1) + ".) " + rows[i].username + " " + rows[i].currentGems + "\n";
