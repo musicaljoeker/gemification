@@ -956,7 +956,7 @@ controller.hears('help', ['direct_mention', 'direct_message', 'ambient'], functi
   adminCommands += '3) How to add an admin to Gemification\n';
   adminCommands += 'In a direct message, type "add admin" and follow the prompts\n\n';
   adminCommands += '4) How to remove an admin from Gemification\n';
-  adminCommands += 'In a direct message, type "remove admin" and follow the prompts';
+  adminCommands += 'In a direct message, type "remove admin" and follow the prompts\n\n';
   adminCommands += '5) Get a full list of gems given in the current time period.\n';
   adminCommands += 'In a direct message, type "all gems"';
 
@@ -997,7 +997,7 @@ controller.hears('all gems','direct_message',function(bot,message) {
             bot.reply(message, 'The leaderboard is empty. Try giving someone a :gem:!');
           } else{
             // Parsing the leaderboard, looping thru everybody returned in the query
-            var leaderboardStr = 'Leaderboard:\n';
+            var leaderboardStr = 'All Gems:\n';
             for(var i=0; i<rows.length; i++){
               if(i==rows.length-1){
                 leaderboardStr += (i+1) + ".) " + rows[i].username + " " + rows[i].currentGems;
