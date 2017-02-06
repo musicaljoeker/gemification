@@ -101,7 +101,7 @@ function checkIsAdminByMessage(bot, message, callback){
   DBPool.getConnection(function(err, connection){
     if (err) throw err;
     connection.query(
-      'SELECT isAdmin FROM userGem WHERE userId=\'' + connection.escape(message.user) + '\';',
+      'SELECT isAdmin FROM userGem WHERE userId=' + connection.escape(message.user) + ';',
       function(err, rows){
       connection.release();
       if (err) throw err;
@@ -128,7 +128,7 @@ function checkIfUserExists(id, callback){
   DBPool.getConnection(function(err, connection){
     if (err) throw err;
     connection.query(
-      'SELECT id FROM userGem WHERE userId=\'' + connection.escape(id) + '\';',
+      'SELECT id FROM userGem WHERE userId=' + connection.escape(id) + ';',
       function(err, rows){
       connection.release();
       if (err) throw err;
@@ -151,7 +151,7 @@ function checkIsAdminById(id, callback){
   DBPool.getConnection(function(err, connection){
     if (err) throw err;
     connection.query(
-      'SELECT isAdmin FROM userGem WHERE userId=\'' + connection.escape(id) + '\';',
+      'SELECT isAdmin FROM userGem WHERE userId=' + connection.escape(id) + ';',
       function(err, rows){
       connection.release();
       if (err) throw err;
@@ -282,7 +282,7 @@ controller.on('create_bot',function(bot,config) {
             // Getting the database pool
             DBPool.getConnection(function(err, connection){
               if (err) throw err;
-              var createAdminUserQuery = 'INSERT INTO userGem (userId, username, isAdmin) VALUES (\'' + connection.escape(config.createdBy) + '\', \'' + connection.escape(createdByUsername) + '\', TRUE)';
+              var createAdminUserQuery = 'INSERT INTO userGem (userId, username, isAdmin) VALUES (' + connection.escape(config.createdBy) + ', ' + connection.escape(createdByUsername) + ', TRUE)';
               console.log('Create Admin User Query: ' + createAdminUserQuery);
               connection.query(
                 createAdminUserQuery,
@@ -471,7 +471,7 @@ controller.hears(':gem:','ambient',function(bot,message) {
         // Getting the database pool
         DBPool.getConnection(function(err, connection){
           if (err) throw err;
-          var giveGemQuery = 'CALL incrementGems(\'' + connection.escape(gemGiverId) + '\', \'' + connection.escape(gemGiverUsername) + '\', \'' + connection.escape(gemReceiverId) + '\', \'' + connection.escape(gemReceiverUsername) + '\', \'' + connection.escape(reason) + '\');';
+          var giveGemQuery = 'CALL incrementGems(' + connection.escape(gemGiverId) + ', ' + connection.escape(gemGiverUsername) + ', ' + connection.escape(gemReceiverId) + ', ' + connection.escape(gemReceiverUsername) + ', ' + connection.escape(reason) + ');';
           connection.query(
             giveGemQuery,
             function(err, rows){
@@ -661,7 +661,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                                 DBPool.getConnection(function(err, connection){
                                   if (err) throw err;
                                   connection.query(
-                                    'UPDATE userGem SET isAdmin=\'1\' WHERE userId=\'' + connection.escape(newAdminId) + '\';',
+                                    'UPDATE userGem SET isAdmin=\'1\' WHERE userId=' + connection.escape(newAdminId) + ';',
                                     function(err, rows){
                                     connection.release();
                                     if (err) throw err;
@@ -739,7 +739,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                             DBPool.getConnection(function(err, connection){
                               if (err) throw err;
                               connection.query(
-                                'INSERT INTO userGem (userId, username, isAdmin) VALUES (\'' + connection.escape(newAdminId) + '\', \'' + connection.escape(newAdminName) + '\', TRUE)',
+                                'INSERT INTO userGem (userId, username, isAdmin) VALUES (' + connection.escape(newAdminId) + ', ' + connection.escape(newAdminName) + ', TRUE)',
                                 function(err, rows){
                                 connection.release();
                                 if (err) throw err;
@@ -874,7 +874,7 @@ controller.hears('remove admin', 'direct_message', function(bot, message){
                                   DBPool.getConnection(function(err, connection){
                                     if (err) throw err;
                                     connection.query(
-                                      'UPDATE userGem SET isAdmin=\'0\' WHERE userId=\'' + connection.escape(removeAdminId) + '\';',
+                                      'UPDATE userGem SET isAdmin=\'0\' WHERE userId=' + connection.escape(removeAdminId) + ';',
                                       function(err, rows){
                                       connection.release();
                                       if (err) throw err;
