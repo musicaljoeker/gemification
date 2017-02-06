@@ -667,6 +667,14 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                                     if (err) throw err;
                                     // Convo end point
                                     convo.say(newAdmin + ' is now set as an admin.');
+                                    // Notifying the new admin they have been set as an admin
+                                    bot.startPrivateConversation({user: newAdminId},function(err,newAdminNotification) {
+                                      if (err) {
+                                        console.log(err);
+                                      } else {
+                                        newAdminNotification.say('Hey there good looking, you have been set as an admin.');
+                                      }
+                                    });
                                     convo.next();
                                   });
                                 });
@@ -872,6 +880,14 @@ controller.hears('remove admin', 'direct_message', function(bot, message){
                                       if (err) throw err;
                                       // Convo end point
                                       convo.say(removeAdmin + ' is now removed from being an admin.');
+                                      // Sending the user a notification they have been removed as an admin
+                                      bot.startPrivateConversation({user: removeAdminId},function(err,removeAdminNotification) {
+                                        if (err) {
+                                          console.log(err);
+                                        } else {
+                                          removeAdminNotification.say('You have been removed as an admin.');
+                                        }
+                                      });
                                       convo.next();
                                     });
                                   });
