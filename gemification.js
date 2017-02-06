@@ -101,7 +101,7 @@ function checkIsAdminByMessage(bot, message, callback){
   DBPool.getConnection(function(err, connection){
     if (err) throw err;
     connection.query(
-      'SELECT isAdmin FROM userGem WHERE userId=\'' + message.user + '\';',
+      'SELECT isAdmin FROM userGem WHERE userId=\'' + connection.escape(message.user) + '\';',
       function(err, rows){
       connection.release();
       if (err) throw err;
@@ -128,7 +128,7 @@ function checkIfUserExists(id, callback){
   DBPool.getConnection(function(err, connection){
     if (err) throw err;
     connection.query(
-      'SELECT id FROM userGem WHERE userId=\'' + id + '\';',
+      'SELECT id FROM userGem WHERE userId=\'' + connection.escape(id) + '\';',
       function(err, rows){
       connection.release();
       if (err) throw err;
@@ -151,7 +151,7 @@ function checkIsAdminById(id, callback){
   DBPool.getConnection(function(err, connection){
     if (err) throw err;
     connection.query(
-      'SELECT isAdmin FROM userGem WHERE userId=\'' + id + '\';',
+      'SELECT isAdmin FROM userGem WHERE userId=\'' + connection.escape(id) + '\';',
       function(err, rows){
       connection.release();
       if (err) throw err;
@@ -282,7 +282,7 @@ controller.on('create_bot',function(bot,config) {
             // Getting the database pool
             DBPool.getConnection(function(err, connection){
               if (err) throw err;
-              var createAdminUserQuery = 'INSERT INTO userGem (userId, username, isAdmin) VALUES (\'' + config.createdBy + '\', \'' + createdByUsername + '\', TRUE)';
+              var createAdminUserQuery = 'INSERT INTO userGem (userId, username, isAdmin) VALUES (\'' + connection.escape(config.createdBy) + '\', \'' + connection.escape(createdByUsername) + '\', TRUE)';
               console.log('Create Admin User Query: ' + createAdminUserQuery);
               connection.query(
                 createAdminUserQuery,
@@ -471,7 +471,7 @@ controller.hears(':gem:','ambient',function(bot,message) {
         // Getting the database pool
         DBPool.getConnection(function(err, connection){
           if (err) throw err;
-          var giveGemQuery = 'CALL incrementGems(\'' + gemGiverId + '\', \'' + gemGiverUsername + '\', \'' + gemReceiverId + '\', \'' + gemReceiverUsername + '\', \'' + reason + '\');';
+          var giveGemQuery = 'CALL incrementGems(\'' + connection.escape(gemGiverId) + '\', \'' + connection.escape(gemGiverUsername) + '\', \'' + connection.escape(gemReceiverId) + '\', \'' + connection.escape(gemReceiverUsername) + '\', \'' + connection.escape(reason) + '\');';
           connection.query(
             giveGemQuery,
             function(err, rows){
@@ -661,7 +661,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                                 DBPool.getConnection(function(err, connection){
                                   if (err) throw err;
                                   connection.query(
-                                    'UPDATE userGem SET isAdmin=\'1\' WHERE userId=\'' + newAdminId + '\';',
+                                    'UPDATE userGem SET isAdmin=\'1\' WHERE userId=\'' + connection.escape(newAdminId) + '\';',
                                     function(err, rows){
                                     connection.release();
                                     if (err) throw err;
@@ -739,7 +739,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                             DBPool.getConnection(function(err, connection){
                               if (err) throw err;
                               connection.query(
-                                'INSERT INTO userGem (userId, username, isAdmin) VALUES (\'' + newAdminId + '\', \'' + newAdminName + '\', TRUE)',
+                                'INSERT INTO userGem (userId, username, isAdmin) VALUES (\'' + connection.escape(newAdminId) + '\', \'' + connection.escape(newAdminName) + '\', TRUE)',
                                 function(err, rows){
                                 connection.release();
                                 if (err) throw err;
@@ -874,7 +874,7 @@ controller.hears('remove admin', 'direct_message', function(bot, message){
                                   DBPool.getConnection(function(err, connection){
                                     if (err) throw err;
                                     connection.query(
-                                      'UPDATE userGem SET isAdmin=\'0\' WHERE userId=\'' + removeAdminId + '\';',
+                                      'UPDATE userGem SET isAdmin=\'0\' WHERE userId=\'' + connection.escape(removeAdminId) + '\';',
                                       function(err, rows){
                                       connection.release();
                                       if (err) throw err;
@@ -957,9 +957,63 @@ controller.hears('help', ['direct_mention', 'direct_message', 'ambient'], functi
   adminCommands += 'In a direct message, type "add admin" and follow the prompts\n\n';
   adminCommands += '4) How to remove an admin from Gemification\n';
   adminCommands += 'In a direct message, type "remove admin" and follow the prompts';
+  adminCommands += '5) Get a full list of gems given in the current time period.\n';
+  adminCommands += 'In a direct message, type "all gems"';
 
   helpStr += publicCommands + adminCommands;
   bot.reply(message, helpStr);
+});
+
+// The gemification bot listens for a direct meantion followed by the leaderboard
+// keyword. The bot then performs a query on the Gemification database and asks
+// for the top 10 people that have a gem count greater than 0.
+// The leaderboard is then paresed as a string in leaderboardStr like this...
+//
+// Leaderboard:
+// 1.) emily.albulushi 5
+// 2.) kerkhofj 4
+// 3.) josh.schmidt 3
+// 4.) kurt.kaufman 3
+// 5.) likwam29 3
+// 6.) sean.mitchell 2
+// 7.) alex.flasch 1
+// 8.) derrick.heinemann 1
+// 9.) weinks15 1
+// 10.) bateset39 1
+controller.hears('all gems','direct_message',function(bot,message) {
+  checkIsAdminByMessage(bot, message, function(isAdmin){
+    if(isAdmin){
+      // Getting the database pool
+      DBPool.getConnection(function(err, connection){
+        if (err) throw err;
+        connection.query(
+          'SELECT username, currentGems FROM userGem WHERE currentGems > 0 ORDER BY currentGems DESC',
+          function(err, rows){
+          if (err) throw err;
+          // Done with connection
+          connection.release();
+          // Don't use connection here, it has been returned to the pool
+          if(isEmptyObject(rows)){
+            bot.reply(message, 'The leaderboard is empty. Try giving someone a :gem:!');
+          } else{
+            // Parsing the leaderboard, looping thru everybody returned in the query
+            var leaderboardStr = 'Leaderboard:\n';
+            for(var i=0; i<rows.length; i++){
+              if(i==rows.length-1){
+                leaderboardStr += (i+1) + ".) " + rows[i].username + " " + rows[i].currentGems;
+              } else{
+                leaderboardStr += (i+1) + ".) " + rows[i].username + " " + rows[i].currentGems + "\n";
+              }
+            }
+            bot.reply(message, leaderboardStr);
+          }
+        });
+      });
+    }
+    else{
+      bot.reply(message, 'Nice try, wise guy, but you aren\'t an admin. Only admins can list all gems. :angry:')
+    }
+  });
 });
 
 // This method causes the bot to react with a cow-hat to everything Austin says
