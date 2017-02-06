@@ -527,7 +527,7 @@ controller.hears('leaderboard',['direct_mention','direct_message'],function(bot,
   DBPool.getConnection(function(err, connection){
     if (err) throw err;
     connection.query(
-      'SELECT username, currentGems FROM userGem WHERE currentGems > 0 ORDER BY currentGems DESC',
+      'SELECT username, currentGems FROM userGem WHERE currentGems > 0 ORDER BY currentGems DESC LIMIT 10',
       function(err, rows){
       if (err) throw err;
       // Done with connection
