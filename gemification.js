@@ -673,7 +673,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                                       if (err) {
                                         console.log(err);
                                       } else {
-                                        newAdminNotification.say('Hey there good looking, you have been set as an admin.');
+                                        newAdminNotification.say('Hey there, good looking. :wink: You have been set as an admin.');
                                       }
                                     });
                                     convo.next();
