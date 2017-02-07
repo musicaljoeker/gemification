@@ -361,7 +361,7 @@ controller.hears(':gem:','ambient',function(bot,message) {
       // Person who gave the :gem:
       var gemGiverEncoded = '<@' + gemGiverId + '>';
       // Trimmed raw username who is getting the gem (ex. UW392NNSK)
-      var gemReceiverIdTemp = String(messageText.match(/@([^\s]+)/g));
+      var gemReceiverIdTemp = String(messageText.match(/@([^\s]+)/));
       var gemReceiverId = gemReceiverIdTemp.substring(1, gemReceiverIdTemp.length-1);
       // Encoded username who is getting the gem (ex. <@UW392NNSK>, but will display as @john.doe
       // in the Slack app)
@@ -607,7 +607,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
               // the Slack team.
               getSlackUsers(bot, message, function(allSlackUsers){
                 // Trimmed raw username who is getting the admin privileges (ex. UW392NNSK)
-                var newAdminTemp = String(response.text.match(/@([^\s]+)/g));
+                var newAdminTemp = String(response.text.match(/@([^\s]+)/));
                 var newAdminId = newAdminTemp.substring(1, newAdminTemp.length-1);
                 var newAdmin = '<@' + newAdminId + '>';
                 var isValidUsername = findUserById(allSlackUsers, newAdminId);
@@ -819,7 +819,7 @@ controller.hears('remove admin', 'direct_message', function(bot, message){
               // the Slack team.
               getSlackUsers(bot, message, function(allSlackUsers){
                 // Trimmed raw username who is getting the admin privileges (ex. UW392NNSK)
-                var removeAdminTemp = String(response.text.match(/@([^\s]+)/g));
+                var removeAdminTemp = String(response.text.match(/@([^\s]+)/));
                 var removeAdminId = removeAdminTemp.substring(1, removeAdminTemp.length-1);
                 var removeAdmin = '<@' + removeAdminId + '>';
                 checkIsLastAdmin(removeAdminId, function(islastAdmin){
