@@ -347,7 +347,7 @@ controller.storage.teams.all(function(err,teams) {
 
 // Message data contains the following content by this association
 // type, channel, user, text, ts, team, event, match
-controller.hears(':gem:','ambient',function(bot,message) {
+controller.hears(':gem:',['ambient', 'direct_mention'],function(bot,message) {
   // getting all of the usernames in the channel, then executing the callback function
   // after the task gets all the usernames
   getMembersInChannel(bot, message, function(membersInChannel){
