@@ -538,8 +538,9 @@ controller.hears('leaderboard',['direct_mention','direct_message'],function(bot,
       } else{
         // Parsing the leaderboard, looping thru everybody returned in the query
         var leaderboardStr = 'Leaderboard:\n';
-        for(var i=0; i<10; i++){
-          if(i==9){
+        var numOfLoops = (rows.length > 10) ? 10 : rows.length;
+        for(var i=0; i<numOfLoops; i++){
+          if(i == (numOfLoops-1)){
             leaderboardStr += (i+1) + ".) " + rows[i].username + " " + rows[i].currentGems;
           } else{
             leaderboardStr += (i+1) + ".) " + rows[i].username + " " + rows[i].currentGems + "\n";
