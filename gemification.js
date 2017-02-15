@@ -541,9 +541,9 @@ controller.hears('leaderboard',['direct_mention','direct_message'],function(bot,
         var numOfLoops = (rows.length > 10) ? 10 : rows.length;
         for(var i=0; i<numOfLoops; i++){
           if(i == (numOfLoops-1)){
-            leaderboardStr += (i+1) + ".) >" + rows[i].username + " " + rows[i].currentGems;
+            leaderboardStr += (i+1) + ".) " + rows[i].username + " " + rows[i].currentGems;
           } else{
-            leaderboardStr += (i+1) + ".) >" + rows[i].username + " " + rows[i].currentGems + "\n";
+            leaderboardStr += (i+1) + ".) " + rows[i].username + " " + rows[i].currentGems + "\n";
           }
         }
         bot.reply(message, leaderboardStr);
