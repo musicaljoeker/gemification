@@ -534,16 +534,16 @@ controller.hears('leaderboard',['direct_mention','direct_message'],function(bot,
       connection.release();
       // Don't use connection here, it has been returned to the pool
       if(isEmptyObject(rows)){
-        bot.reply(message, 'The leaderboard is empty. Try giving someone a :gem:!');
+        bot.reply(message, '>The leaderboard is empty. Try giving someone a :gem:!');
       } else{
         // Parsing the leaderboard, looping thru everybody returned in the query
-        var leaderboardStr = 'Leaderboard:\n';
+        var leaderboardStr = '>Leaderboard:\n';
         var numOfLoops = (rows.length > 10) ? 10 : rows.length;
         for(var i=0; i<numOfLoops; i++){
           if(i == (numOfLoops-1)){
-            leaderboardStr += (i+1) + ".) " + rows[i].username + " " + rows[i].currentGems;
+            leaderboardStr += ">" + (i+1) + ".) " + rows[i].username + " " + rows[i].currentGems;
           } else{
-            leaderboardStr += (i+1) + ".) " + rows[i].username + " " + rows[i].currentGems + "\n";
+            leaderboardStr += ">" + (i+1) + ".) " + rows[i].username + " " + rows[i].currentGems + "\n";
           }
         }
         bot.reply(message, leaderboardStr);
