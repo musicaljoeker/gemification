@@ -1,2 +1,2 @@
 # gemification
-A Slack bot created for central IT as a buddy reward system.
+A Slack bot created for UWO Central IT as a buddy reward system.
