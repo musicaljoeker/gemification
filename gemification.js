@@ -1029,4 +1029,4 @@ controller.hears('', ['direct_mention', 'direct_message', 'ambient'], function(b
       if (err) { console.log(err) }
     });
   }
-}); 
+});
