@@ -282,7 +282,7 @@ controller.on('create_bot',function(bot,config) {
             // Getting the database pool
             DBPool.getConnection(function(err, connection){
               if (err) throw err;
-              var createAdminUserQuery = 'INSERT INTO userGem (userId, username, isAdmin) VALUES (' + connection.escape(config.createdBy) + ', ' + connection.escape(createdByUsername) + ', TRUE)';
+              var createAdminUserQuery = 'INSERT INTO userGem (userId, isAdmin) VALUES (' + connection.escape(config.createdBy) + ', TRUE)';
               console.log('Create Admin User Query: ' + createAdminUserQuery);
               connection.query(
                 createAdminUserQuery,
@@ -471,7 +471,7 @@ controller.hears(':gem:','ambient',function(bot,message) {
         // Getting the database pool
         DBPool.getConnection(function(err, connection){
           if (err) throw err;
-          var giveGemQuery = 'CALL incrementGems(' + connection.escape(gemGiverId) + ', ' + connection.escape(gemGiverUsername) + ', ' + connection.escape(gemReceiverId) + ', ' + connection.escape(gemReceiverUsername) + ', ' + connection.escape(reason) + ');';
+          var giveGemQuery = 'CALL incrementGems(' + connection.escape(gemGiverId) + ', ' + connection.escape(gemReceiverId) + ', ' +  connection.escape(reason) + ');';
           connection.query(
             giveGemQuery,
             function(err, rows){
@@ -527,27 +527,33 @@ controller.hears('leaderboard',['direct_mention','direct_message'],function(bot,
   DBPool.getConnection(function(err, connection){
     if (err) throw err;
     connection.query(
-      'SELECT username, currentGems FROM userGem WHERE currentGems > 0 ORDER BY currentGems DESC',
+      'SELECT userId, currentGems FROM userGem WHERE currentGems > 0 ORDER BY currentGems DESC',
       function(err, rows){
       if (err) throw err;
       // Done with connection
       connection.release();
-      // Don't use connection here, it has been returned to the pool
-      if(isEmptyObject(rows)){
-        bot.reply(message, 'The leaderboard is empty. Try giving someone a :gem:!');
-      } else{
-        // Parsing the leaderboard, looping thru everybody returned in the query
-        var leaderboardStr = 'Leaderboard:\n';
-        var numOfLoops = (rows.length > 10) ? 10 : rows.length;
-        for(var i=0; i<numOfLoops; i++){
-          if(i == (numOfLoops-1)){
-            leaderboardStr += (i+1) + ".) " + rows[i].username + " " + rows[i].currentGems;
-          } else{
-            leaderboardStr += (i+1) + ".) " + rows[i].username + " " + rows[i].currentGems + "\n";
+
+      // Adding the user which installed gemification as an admin
+
+      // Getting all the usernames
+      getSlackUsersWithoutMessage(bot, function(allSlackUsers){
+        // Don't use connection here, it has been returned to the pool
+        if(isEmptyObject(rows)){
+          bot.reply(message, 'The leaderboard is empty. Try giving someone a :gem:!');
+        } else{
+          // Parsing the leaderboard, looping thru everybody returned in the query
+          var leaderboardStr = 'Leaderboard:\n';
+          var numOfLoops = (rows.length > 10) ? 10 : rows.length;
+          for(var i=0; i<numOfLoops; i++){
+            if(i == (numOfLoops-1)){
+              leaderboardStr += (i+1) + ".) " + convertIdToName(allSlackUsers, rows[i].userId) + " " + rows[i].currentGems;
+            } else{
+              leaderboardStr += (i+1) + ".) " + convertIdToName(allSlackUsers, rows[i].userId) + " " + rows[i].currentGems + "\n";
+            }
           }
+          bot.reply(message, leaderboardStr);
         }
-        bot.reply(message, leaderboardStr);
-      }
+      });
     });
   });
 });
@@ -740,7 +746,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                             DBPool.getConnection(function(err, connection){
                               if (err) throw err;
                               connection.query(
-                                'INSERT INTO userGem (userId, username, isAdmin) VALUES (' + connection.escape(newAdminId) + ', ' + connection.escape(newAdminName) + ', TRUE)',
+                                'INSERT INTO userGem (userId, isAdmin) VALUES (' + connection.escape(newAdminId) + ', TRUE)',
                                 function(err, rows){
                                 connection.release();
                                 if (err) throw err;
@@ -988,26 +994,30 @@ controller.hears('all gems','direct_message',function(bot,message) {
       DBPool.getConnection(function(err, connection){
         if (err) throw err;
         connection.query(
-          'SELECT username, currentGems FROM userGem WHERE currentGems > 0 ORDER BY currentGems DESC',
+          'SELECT userId, currentGems FROM userGem WHERE currentGems > 0 ORDER BY currentGems DESC',
           function(err, rows){
           if (err) throw err;
           // Done with connection
           connection.release();
           // Don't use connection here, it has been returned to the pool
-          if(isEmptyObject(rows)){
-            bot.reply(message, 'The leaderboard is empty. Try giving someone a :gem:!');
-          } else{
-            // Parsing the leaderboard, looping thru everybody returned in the query
-            var leaderboardStr = 'All Gems:\n';
-            for(var i=0; i<rows.length; i++){
-              if(i==rows.length-1){
-                leaderboardStr += (i+1) + ".) " + rows[i].username + " " + rows[i].currentGems;
-              } else{
-                leaderboardStr += (i+1) + ".) " + rows[i].username + " " + rows[i].currentGems + "\n";
+
+          // Getting all the usernames
+          getSlackUsersWithoutMessage(bot, function(allSlackUsers){
+            if(isEmptyObject(rows)){
+              bot.reply(message, 'Nobody has received any gems yet. :sob: Try giving someone a :gem:!');
+            } else{
+              // Parsing the leaderboard, looping thru everybody returned in the query
+              var leaderboardStr = 'All Gems:\n';
+              for(var i=0; i<rows.length; i++){
+                if(i==rows.length-1){
+                  leaderboardStr += (i+1) + ".) " + convertIdToName(allSlackUsers, rows[i].userId) + " " + rows[i].currentGems;
+                } else{
+                  leaderboardStr += (i+1) + ".) " + convertIdToName(allSlackUsers, rows[i].userId) + " " + rows[i].currentGems + "\n";
+                }
               }
+              bot.reply(message, leaderboardStr);
             }
-            bot.reply(message, leaderboardStr);
-          }
+          });
         });
       });
     }
