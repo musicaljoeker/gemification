@@ -307,7 +307,6 @@ controller.on('create_bot',function(bot,config) {
   }
 });
 
-
 // Handle events related to the websocket connection to Slack
 controller.on('rtm_open',function(bot) {
   console.log('** The RTM api just connected!');
@@ -332,7 +331,7 @@ controller.storage.teams.all(function(err,teams) {
     throw new Error(err);
   }
   // connect all teams with bots up to slack!
-  for (var t  in teams) {
+  for (var t in teams) {
     if (teams[t].bot) {
       controller.spawn(teams[t]).startRTM(function(err, bot) {
         if (err) {
@@ -341,6 +340,112 @@ controller.storage.teams.all(function(err,teams) {
           trackBot(bot);
         }
       });
+    }
+  }
+});
+
+// Handlers for interactive messages
+controller.on('interactive_message_callback', function(bot, message) {
+  var array;
+  if(message.callback_id=='1' || message.callback_id=='2' || message.callback_id=='3'){
+    try {
+      array = JSON.parse(message.actions[0].value);
+    } catch (ex) {
+      console.error(ex);
+    }
+  }
+
+  // Update the user as an admin
+  if(message.callback_id=='1'){
+    // Array for this function will be array[answer, newAdminId, newAdmin]
+    var answer = array[0];
+    var newAdminId = array[1];
+    var newAdmin = array[2];
+    newAdmin = newAdmin.replace('&lt;', '<').replace('&gt;', '>'); // unsanitizing the strings
+
+    if(answer=='yes'){
+      DBPool.getConnection(function(err, connection){
+        if (err) throw err;
+        connection.query(
+          'UPDATE userGem SET isAdmin=\'1\' WHERE userId=' + connection.escape(newAdminId) + ';',
+          function(err, rows){
+          connection.release();
+          if (err) throw err;
+          // Convo end point
+          bot.replyInteractive(message, newAdmin + ' is now set as an admin.');
+          // Notifying the new admin they have been set as an admin
+          bot.startPrivateConversation({user: newAdminId},function(err,newAdminNotification) {
+            if (err) {
+              console.log(err);
+            } else {
+              newAdminNotification.say('Hey there, good looking. :wink: You have been set as an admin.');
+            }
+          });
+        });
+      });
+    }
+    if(answer=='no'){
+      bot.replyInteractive(message, newAdmin + ' will not be set as an admin.');
+    }
+  }
+
+  // New user will be inserted as an admin into the table
+  if(message.callback_id=='2'){
+    // Array for this function will be array[answer, newAdminId, newAdmin]
+    var answer = array[0];
+    var newAdminId = array[1];
+    var newAdmin = array[2];
+    newAdmin = newAdmin.replace('&lt;', '<').replace('&gt;', '>'); // unsanitizing the strings
+
+    if(answer=='yes'){
+      DBPool.getConnection(function(err, connection){
+        if (err) throw err;
+        connection.query(
+          'INSERT INTO userGem (userId, isAdmin) VALUES (' + connection.escape(newAdminId) + ', TRUE)',
+          function(err, rows){
+          connection.release();
+          if (err) throw err;
+          // Convo end point
+          bot.replyInteractive(message, newAdmin + ' is now set as an admin.');
+        });
+      });
+    }
+    if(answer=='no'){
+      bot.replyInteractive(message, newAdmin + ' will not be set as an admin.');
+    }
+  }
+
+  // User will be removed as an admin from the database
+  if(message.callback_id=='3'){
+    // Array for this function is array[answer, removeAdminId, removeAdmin]
+    var answer = array[0];
+    var removeAdminId = array[1];
+    var removeAdmin = array[2];
+    removeAdmin = removeAdmin.replace('&lt;', '<').replace('&gt;', '>'); // unsanitizing the strings
+
+    if(answer=='yes'){
+      DBPool.getConnection(function(err, connection){
+        if (err) throw err;
+        connection.query(
+          'UPDATE userGem SET isAdmin=\'0\' WHERE userId=' + connection.escape(removeAdminId) + ';',
+          function(err, rows){
+          connection.release();
+          if (err) throw err;
+          // Convo end point
+          bot.replyInteractive(message, removeAdmin + ' is now removed from being an admin.');
+          // Sending the user a notification they have been removed as an admin
+          bot.startPrivateConversation({user: removeAdminId},function(err,removeAdminNotification) {
+            if (err) {
+              console.log(err);
+            } else {
+              removeAdminNotification.say('You have been removed as an admin.');
+            }
+          });
+        });
+      });
+    }
+    if(answer=='no'){
+      bot.replyInteractive(message, removeAdmin + ' will not be removed from being an admin.');
     }
   }
 });
@@ -638,72 +743,34 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                           // The user that was entered is not an admin, and should be set as an admin
                           convo.next();
                           // Validate the what is about to happen with the user
-                          convo.ask({
+                          // Array for this function is array[answer, newAdminId, newAdmin]
+                          var answerYes = ['yes', newAdminId, newAdmin];
+                          var answerYesJSON = JSON.stringify(answerYes);
+                          var answerNo = ['no', newAdminId, newAdmin];
+                          var answerNoJSON = JSON.stringify(answerNo);
+                          bot.reply(message, {
                             attachments:[
                               {
                                 title: 'Are you sure you want to set ' + newAdmin + ' as an admin?',
-                                callback_id: '1',
+                                callback_id: '1', // Set admin and user is in the database
                                 attachment_type: 'default',
                                 actions: [
                                   {
                                     "name": "yes",
                                     "text": "Yes",
-                                    "value": "yes",
+                                    "value": answerYesJSON,
                                     "type": "button"
                                   },
                                   {
                                     "name": "no",
                                     "text": "No",
-                                    "value": "no",
+                                    "value": answerNoJSON,
                                     "type": "button"
                                   }
                                 ]
                               }
                             ]
-                          },[
-                            {
-                              pattern: "yes",
-                              callback: function(reply, convo) {
-                                // Update the user as an admin
-                                DBPool.getConnection(function(err, connection){
-                                  if (err) throw err;
-                                  connection.query(
-                                    'UPDATE userGem SET isAdmin=\'1\' WHERE userId=' + connection.escape(newAdminId) + ';',
-                                    function(err, rows){
-                                    connection.release();
-                                    if (err) throw err;
-                                    // Convo end point
-                                    convo.say(newAdmin + ' is now set as an admin.');
-                                    // Notifying the new admin they have been set as an admin
-                                    bot.startPrivateConversation({user: newAdminId},function(err,newAdminNotification) {
-                                      if (err) {
-                                        console.log(err);
-                                      } else {
-                                        newAdminNotification.say('Hey there, good looking. :wink: You have been set as an admin.');
-                                      }
-                                    });
-                                    convo.next();
-                                  });
-                                });
-                              }
-                            },
-                            {
-                              pattern: "no",
-                              callback: function(reply, convo) {
-                                // Convo end point
-                                convo.say(newAdmin + ' will not be set as an admin.');
-                                convo.next();
-                              }
-                            },
-                            {
-                              default: true,
-                              callback: function(reply, convo) {
-                                // do nothing
-                                // Convo end point
-                                convo.next();
-                              }
-                            }
-                          ]);
+                         });
                         }
                       });
                     } else{
@@ -716,64 +783,34 @@ controller.hears('add admin', 'direct_message', function(bot, message){
 
                       convo.next();
                       // Validate the what is about to happen with the user
-                      convo.ask({
+                      // Array for this function is array[answer, newAdminId, newAdmin]
+                      var answerYes = ['yes', newAdminId, newAdmin];
+                      var answerYesJSON = JSON.stringify(answerYes);
+                      var answerNo = ['no', newAdminId, newAdmin];
+                      var answerNoJSON = JSON.stringify(answerNo);
+                      bot.reply(message, {
                         attachments:[
                           {
                             title: 'Are you sure you want to set ' + newAdmin + ' as an admin?',
-                            callback_id: '2',
+                            callback_id: '2', // Insert user into database and set as admin
                             attachment_type: 'default',
                             actions: [
                               {
                                 "name": "yes",
                                 "text": "Yes",
-                                "value": "yes",
+                                "value": answerYesJSON,
                                 "type": "button"
                               },
                               {
                                 "name": "no",
                                 "text": "No",
-                                "value": "no",
+                                "value": answerNoJSON,
                                 "type": "button"
                               }
                             ]
                           }
                         ]
-                      },[
-                        {
-                          pattern: "yes",
-                          callback: function(reply, convo) {
-                            // Create the user in the database as an admin
-                            DBPool.getConnection(function(err, connection){
-                              if (err) throw err;
-                              connection.query(
-                                'INSERT INTO userGem (userId, isAdmin) VALUES (' + connection.escape(newAdminId) + ', TRUE)',
-                                function(err, rows){
-                                connection.release();
-                                if (err) throw err;
-                                // Convo end point
-                                convo.say(newAdmin + ' is now set as an admin.');
-                                convo.next();
-                              });
-                            });
-                          }
-                        },
-                        {
-                          pattern: "no",
-                          callback: function(reply, convo) {
-                            // Convo end point
-                            convo.say(newAdmin + ' will not be set as an admin.');
-                            convo.next();
-                          }
-                        },
-                        {
-                          default: true,
-                          callback: function(reply, convo) {
-                            // do nothing
-                            // Convo end point
-                            convo.next();
-                          }
-                        }
-                      ]);
+                     });
                     }
                   });
                 }
@@ -789,7 +826,7 @@ controller.hears('add admin', 'direct_message', function(bot, message){
   });
 });
 
-controller.hears('list admins', 'direct_message', function(bot, message){
+controller.hears(['list admins', 'list admin'], 'direct_message', function(bot, message){
   listAdmins(bot, message);
 });
 
@@ -851,72 +888,36 @@ controller.hears('remove admin', 'direct_message', function(bot, message){
                             // Convo end point
                             convo.next();
                             // Validate the what is about to happen with the user
-                            convo.ask({
+
+                            // Array for this function is array[button-value, removeAdminId, removeAdmin]
+                            var answerYes = ['yes', removeAdminId, removeAdmin];
+                            var answerYesJSON = JSON.stringify(answerYes);
+                            var answerNo = ['no', removeAdminId, removeAdmin];
+                            var answerNoJSON = JSON.stringify(answerNo);
+
+                            bot.reply(message, {
                               attachments:[
                                 {
                                   title: 'Are you sure you want to remove ' + removeAdmin + ' as an admin?',
-                                  callback_id: '1',
+                                  callback_id: '3', // Remove admin
                                   attachment_type: 'default',
                                   actions: [
                                     {
                                       "name": "yes",
                                       "text": "Yes",
-                                      "value": "yes",
+                                      "value": answerYesJSON,
                                       "type": "button"
                                     },
                                     {
                                       "name": "no",
                                       "text": "No",
-                                      "value": "no",
+                                      "value": answerNoJSON,
                                       "type": "button"
                                     }
                                   ]
                                 }
                               ]
-                            },[
-                              {
-                                pattern: "yes",
-                                callback: function(reply, convo) {
-                                  // Update the user as an admin
-                                  DBPool.getConnection(function(err, connection){
-                                    if (err) throw err;
-                                    connection.query(
-                                      'UPDATE userGem SET isAdmin=\'0\' WHERE userId=' + connection.escape(removeAdminId) + ';',
-                                      function(err, rows){
-                                      connection.release();
-                                      if (err) throw err;
-                                      // Convo end point
-                                      convo.say(removeAdmin + ' is now removed from being an admin.');
-                                      // Sending the user a notification they have been removed as an admin
-                                      bot.startPrivateConversation({user: removeAdminId},function(err,removeAdminNotification) {
-                                        if (err) {
-                                          console.log(err);
-                                        } else {
-                                          removeAdminNotification.say('You have been removed as an admin.');
-                                        }
-                                      });
-                                      convo.next();
-                                    });
-                                  });
-                                }
-                              },
-                              {
-                                pattern: "no",
-                                callback: function(reply, convo) {
-                                  // Convo end point
-                                  convo.say(removeAdmin + ' will not be removed from being an admin.');
-                                  convo.next();
-                                }
-                              },
-                              {
-                                default: true,
-                                callback: function(reply, convo) {
-                                  // do nothing
-                                  // Convo end point
-                                  convo.next();
-                                }
-                              }
-                            ]);
+                           });
                           } else{
                             // The user that was entered is not an admin, and should not be set as an admin
                             convo.say(removeAdmin + ' is currently not an admin.');
@@ -946,29 +947,44 @@ controller.hears('remove admin', 'direct_message', function(bot, message){
 // This function gives a bit of documentation help to the user
 // It listens for a direct message or direct me
 controller.hears('help', ['direct_mention', 'direct_message', 'ambient'], function(bot, message){
-  var helpStr = 'Need some help? We all do sometimes...\nHere are a list of commands that you can use to interact with Gemification:\n\n';
+  checkIsAdminByMessage(bot, message, function(isAdmin){
+    if(isAdmin){
+      var helpStr = 'Need some help? We all do sometimes...\nHere are a list of commands that you can use to interact with Gemification:\n\n';
 
-  var publicCommands = '*Public commands*\n';
-  publicCommands += '1) How to give someone a gem :gem:\n';
-  publicCommands += 'Type ":gem: [@username] for [reason]"\n\n';
-  publicCommands += '2) How to show the leaderboard\n';
-  publicCommands += 'In a direct message, type "leaderboard"\n';
-  publicCommands += 'In a channel, type "@gemification leaderboard"\n\n';
+      var publicCommands = '*Public commands*\n';
+      publicCommands += '1) How to give someone a gem :gem:\n';
+      publicCommands += 'Type ":gem: [@username] for [reason]"\n\n';
+      publicCommands += '2) How to show the leaderboard\n';
+      publicCommands += 'In a direct message, type "leaderboard"\n';
+      publicCommands += 'In a channel, type "@gemification leaderboard"\n\n';
 
-  var adminCommands = '*Admin commands (these can only be run if you\'re an admin)*\n';
-  adminCommands += '1) How to clear the gem leaderboard\n';
-  adminCommands += 'In a direct message, type "clear gems"\n\n';
-  adminCommands += '2) How to list the current admins in Gemification\n';
-  adminCommands += 'In a direct message, type "list admins"\n\n';
-  adminCommands += '3) How to add an admin to Gemification\n';
-  adminCommands += 'In a direct message, type "add admin" and follow the prompts\n\n';
-  adminCommands += '4) How to remove an admin from Gemification\n';
-  adminCommands += 'In a direct message, type "remove admin" and follow the prompts\n\n';
-  adminCommands += '5) Get a full list of gems given in the current time period.\n';
-  adminCommands += 'In a direct message, type "all gems"';
+      var adminCommands = '*Admin commands (these can only be run if you\'re an admin)*\n';
+      adminCommands += '1) How to clear the gem leaderboard\n';
+      adminCommands += 'In a direct message, type "clear gems"\n\n';
+      adminCommands += '2) How to list the current admins in Gemification\n';
+      adminCommands += 'In a direct message, type "list admins"\n\n';
+      adminCommands += '3) How to add an admin to Gemification\n';
+      adminCommands += 'In a direct message, type "add admin" and follow the prompts\n\n';
+      adminCommands += '4) How to remove an admin from Gemification\n';
+      adminCommands += 'In a direct message, type "remove admin" and follow the prompts\n\n';
+      adminCommands += '5) Get a full list of gems given in the current time period.\n';
+      adminCommands += 'In a direct message, type "all gems"';
 
-  helpStr += publicCommands + adminCommands;
-  bot.reply(message, helpStr);
+      helpStr += publicCommands + adminCommands;
+      bot.reply(message, helpStr);
+    } else{
+      var helpStr = 'Need some help? We all do sometimes...\nHere are a list of commands that you can use to interact with Gemification:\n\n';
+
+      var publicCommands = '1) How to give someone a gem :gem:\n';
+      publicCommands += 'Type ":gem: [@username] for [reason]"\n\n';
+      publicCommands += '2) How to show the leaderboard\n';
+      publicCommands += 'In a direct message, type "leaderboard"\n';
+      publicCommands += 'In a channel, type "@gemification leaderboard"\n\n';
+
+      helpStr += publicCommands;
+      bot.reply(message, helpStr);
+    }
+  });
 });
 
 // The gemification bot listens for a direct meantion followed by the leaderboard
