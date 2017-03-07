@@ -759,7 +759,13 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                                     "name": "yes",
                                     "text": "Yes",
                                     "value": answerYesJSON,
-                                    "type": "button"
+                                    "type": "button",
+                                    "confirm": {
+                                      "title": "Are you sure?",
+                                      "text": "This will add a new administrator!",
+                                      "ok_text": "Yes",
+                                      "dismiss_text": "No"
+                                    }
                                   },
                                   {
                                     "name": "no",
@@ -799,7 +805,13 @@ controller.hears('add admin', 'direct_message', function(bot, message){
                                 "name": "yes",
                                 "text": "Yes",
                                 "value": answerYesJSON,
-                                "type": "button"
+                                "type": "button",
+                                "confirm": {
+                                  "title": "Are you sure?",
+                                  "text": "This will add a new administrator!",
+                                  "ok_text": "Yes",
+                                  "dismiss_text": "No"
+                                }
                               },
                               {
                                 "name": "no",
@@ -906,7 +918,13 @@ controller.hears('remove admin', 'direct_message', function(bot, message){
                                       "name": "yes",
                                       "text": "Yes",
                                       "value": answerYesJSON,
-                                      "type": "button"
+                                      "type": "button",
+                                      "confirm": {
+                                        "title": "Are you sure?",
+                                        "text": "This will remove an administrator!",
+                                        "ok_text": "Yes",
+                                        "dismiss_text": "No"
+                                      }
                                     },
                                     {
                                       "name": "no",
