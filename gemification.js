@@ -862,6 +862,8 @@ controller.hears('add admin', 'direct_message', function(bot, message) {
                             'gemification.');
                           convo.next();
                         } else{
+                          let newAdminName = convertIdToName(allSlackUsers,
+                                                              newAdminId);
                           // The user that was entered is not an admin, and
                           // should be set as an admin
                           convo.next();
@@ -888,8 +890,8 @@ controller.hears('add admin', 'direct_message', function(bot, message) {
                                     'type': 'button',
                                     'confirm': {
                                       'title': 'Are you sure?',
-                                      'text': 'This will add a new ' +
-                                                'administrator!',
+                                      'text': 'This will add ' + newAdminName +
+                                                ' as an administrator!',
                                       'ok_text': 'Yes',
                                       'dismiss_text': 'No',
                                     },
@@ -913,8 +915,8 @@ controller.hears('add admin', 'direct_message', function(bot, message) {
                       // user isn't in the database, we should get the
                       // username on the account from the id.
 
-                      // let newAdminName = convertIdToName(allSlackUsers,
-                      //                                     newAdminId);
+                      let newAdminName = convertIdToName(allSlackUsers,
+                                                          newAdminId);
 
                       convo.next();
                       // Validate the what is about to happen with the user
@@ -940,7 +942,8 @@ controller.hears('add admin', 'direct_message', function(bot, message) {
                                 'type': 'button',
                                 'confirm': {
                                   'title': 'Are you sure?',
-                                  'text': 'This will add a new administrator!',
+                                  'text': 'This will add ' + newAdminName +
+                                            ' as an administrator!',
                                   'ok_text': 'Yes',
                                   'dismiss_text': 'No',
                                 },
@@ -1053,6 +1056,9 @@ controller.hears('remove admin', 'direct_message', function(bot, message) {
                             let answerNo = ['no', removeAdminId, removeAdmin];
                             let answerNoJSON = JSON.stringify(answerNo);
 
+                            let removeAdminName = convertIdToName(allSlackUsers,
+                                                                removeAdminId);
+
                             bot.reply(message, {
                               attachments: [
                                 {
@@ -1069,8 +1075,9 @@ controller.hears('remove admin', 'direct_message', function(bot, message) {
                                       'type': 'button',
                                       'confirm': {
                                         'title': 'Are you sure?',
-                                        'text': 'This will remove an' +
-                                                  ' administrator!',
+                                        'text': 'This will remove ' +
+                                            removeAdminName +
+                                            ' as an administrator!',
                                         'ok_text': 'Yes',
                                         'dismiss_text': 'No',
                                       },
