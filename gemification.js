@@ -295,6 +295,168 @@ function checkIsLastAdmin(removeAdminId, callback) {
   });
 }
 
+function isTeamConfigured(bot, callback) {
+  DBPool.getConnection(function(err, connection) {
+    if (err) throw err;
+    let teamId = bot.identifyTeam();
+    connection.query(
+      'SELECT COUNT(isConfigured) as isConfigured FROM teams WHERE slackTeamId=' +
+          connection.escape(teamId) + ' AND isConfigured=\'1\';',
+      function(err, rows) {
+      connection.release();
+      if (err) throw err;
+      if(typeof rows[0] !== 'undefined') {
+        if(rows[0].isConfigured==1) {
+          // team is configured
+          callback(true);
+        } else {
+          // team is not configured
+          callback(false);
+        }
+      } else{
+        // team isn't in the table, and therefore isn't configured
+        callback(false);
+      }
+    });
+  });
+}
+
+function teamConfiguredError(bot, message) {
+  bot.startPrivateConversation({user: message.user},
+    function(err, convo) {
+    if (err) {
+      console.log(err);
+    } else {
+      convo.say('You must configure Gemification before you are able to' +
+                ' use this command.\nTo configure, have an admin run the' +
+                ' `configure` command in a direct message');
+    }
+  });
+}
+
+function capitalizeFirstLetter(string) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+function configureGemification(bot, createdBy) {
+  isTeamConfigured(bot, function(isConfigured) {
+    if(isConfigured) {
+      // Team is already configured
+      bot.startPrivateConversation({user: createdBy},
+        function(err, convo) {
+        if (err) {
+          console.log('Error in configureGemification: ' + err);
+        } else {
+          convo.say('This team is already configured with Gemification.');
+        }
+      });
+    }else {
+      let groups = [];
+
+      let getGroups = function(err, convo) {
+        if (err) {
+          console.log('Error in getGroups: ' + err);
+        } else {
+          convo.say('Let\'s begin by configuring your Slack team into groups.');
+          convo.say('A group is a subset of your Slack team. For example, a' +
+                    ' programming Slack team could be divided into front-end ' +
+                    'and back-end groups.');
+          convo.say('Each group will have their own Gemification leaderboard.');
+          convo.ask('One at a time, please enter a name for a new group. A group can be up ' +
+                    'to 20 characters long. Type `done` to finish and' +
+                      ' finalize the groups or `start over` to start over.', [
+            {
+              pattern: 'done',
+              callback: function(response, convo) {
+                if(groups.length < 1) {
+                  // No groups were entered
+                  convo.say('Please enter at least one group for your ' +
+                            'Slack team.');
+                  convo.repeat();
+                  convo.next();
+                }else {
+                  confirmGroups(response, convo);
+                  convo.next();
+                }
+              },
+            },
+            {
+              pattern: 'start over',
+              callback: function(response, convo) {
+                configureTeam(bot, createdBy);
+                convo.next();
+              },
+            },
+            {
+              default: true,
+              callback: function(response, convo) {
+                let group = capitalizeFirstLetter(response.text);
+                if(groups.indexOf(group) > -1) {
+                  // group was already added
+                  convo.say(group + ' was already added as a group.');
+                }else {
+                  if(group.length > 20) {
+                    convo.say('A group must be 20 characters or less.');
+                  } else{
+                    // it is a new group and is added to the groups array
+                    groups.push(group);
+                    convo.say(group + ' was added as a group');
+                  }
+                }
+                convo.repeat();
+                convo.next();
+              },
+            },
+          ]);
+        }
+      };
+
+      let confirmGroups = function(response, convo) {
+        let groupsStr = groups.join(', ');
+        let answerYes = ['yes', groups, createdBy];
+        let answerYesJSON = JSON.stringify(answerYes);
+        let answerNo = ['no', groups, createdBy];
+        let answerNoJSON = JSON.stringify(answerNo);
+        convo.say({
+          text: 'Here are the groups you have added: ' + groupsStr,
+          attachments: [
+            {
+              title: 'Do you wish to set these groups for your team?',
+              // Set groups for team
+              callback_id: '4',
+              attachment_type: 'default',
+              actions: [
+                {
+                  'name': 'yes',
+                  'text': 'Yes',
+                  'value': answerYesJSON,
+                  'type': 'button',
+                  'confirm': {
+                    'title': 'Are you sure?',
+                    'text': 'This will set these groups (' + groupsStr +
+                              ') for your team!',
+                    'ok_text': 'Yes',
+                    'dismiss_text': 'No',
+                  },
+                },
+                {
+                  'name': 'no',
+                  'text': 'No',
+                  'value': answerNoJSON,
+                  'type': 'button',
+                },
+              ],
+            },
+          ],
+       });
+      };
+
+      // Configure the team
+      bot.startPrivateConversation({user: createdBy}, getGroups);
+    }
+  });
+}
+
 /* ~~~~~~~~~~~~~~~~~~~~End helper functions~~~~~~~~~~~~~~~~~~~~ */
 
 controller.setupWebserver(process.env.port, function(err, webserver) {
@@ -332,41 +494,39 @@ controller.on('create_bot', function(bot, config) {
       bot.startPrivateConversation({user: config.createdBy},
         function(err, convo) {
         if (err) {
-          console.log(err);
+          console.log('Error in create_bot: ' + err);
         } else {
-          convo.say('I am the gemification bot that has just joined your team');
-          convo.say('Please /invite me to your channel so that people can' +
-            'start giving gems!');
+          convo.say('Welcome to Gemification! :gem:');
 
           // Adding the user which installed gemification as an admin
           getSlackUsersWithoutMessage(bot, function(allSlackUsers) {
-            // let createdByUsername = convertIdToName(allSlackUsers,
-            //   config.createdBy);
+            let teamId = bot.identifyTeam(); // Gets the team ID
             // Getting the database pool
             DBPool.getConnection(function(err, connection) {
               if (err) throw err;
-              let createAdminUserQuery = 'INSERT INTO userGem (userId, ' +
-                'isAdmin) VALUES (' + connection.escape(config.createdBy) +
-                ', TRUE)';
-              console.log('Create Admin User Query: ' + createAdminUserQuery);
               connection.query(
-                createAdminUserQuery,
+                'CALL teamInit(' + connection.escape(config.createdBy) + ', ' +
+                  connection.escape(teamId) + ');',
                 function(err, rows) {
-                if (err) throw err;
-                // Done with connection
-                connection.release();
-                // Don't use connection here, it has been returned to the pool
-                bot.startPrivateConversation({user: config.createdBy},
-                  function(err, convo) {
-                  if (err) {
-                    console.log(err);
-                  } else {
-                    convo.say('Your user has been added to as an ' +
-                      'administrator to gemification');
-                  }
-                });
+                if (err) {
+                  console.log('Error in team init query: ' + err);
+                }else {
+                  // Done with connection
+                  connection.release();
+                  // Don't use connection here, it has been returned to the pool
+                  bot.startPrivateConversation({user: config.createdBy},
+                    function(err, convo) {
+                    if (err) {
+                      console.log('Error after team init: ' + err);
+                    } else {
+
+                    }
+                  });
+                }
               });
             });
+            console.log('Done with team init.');
+            configureGemification(bot, config.createdBy);
           });
         }
       });
@@ -417,7 +577,8 @@ controller.on('interactive_message_callback', function(bot, message) {
   let array;
   if(message.callback_id=='1' ||
       message.callback_id=='2' ||
-      message.callback_id=='3') {
+      message.callback_id=='3' ||
+      message.callback_id=='4') {
     try {
       array = JSON.parse(message.actions[0].value);
     } catch (ex) {
@@ -476,10 +637,12 @@ controller.on('interactive_message_callback', function(bot, message) {
 
     if(answer=='yes') {
       DBPool.getConnection(function(err, connection) {
+        let teamId = bot.identifyTeam(); // Gets the team ID
         if (err) throw err;
         connection.query(
-          'INSERT INTO userGem (userId, isAdmin) VALUES (' +
-            connection.escape(newAdminId) + ', TRUE)',
+          'INSERT INTO userGem (userId, teamId, isAdmin) VALUES (' +
+            connection.escape(newAdminId) + ', ' +
+            connection.escape(teamId) + ', TRUE)',
           function(err, rows) {
           connection.release();
           if (err) throw err;
@@ -532,189 +695,257 @@ controller.on('interactive_message_callback', function(bot, message) {
         'being an admin.');
     }
   }
+
+  // Set groups for team
+  if(message.callback_id=='4') {
+    // Array for this function is array[answer, groups[], createdBy]
+    let answer = array[0];
+    let groups = array[1];
+    let createdBy = array[2];
+    let groupsStr = groups.join(', ');
+
+    if(answer=='yes') {
+      let teamId = bot.identifyTeam();
+      // Set the groups in the database
+      DBPool.getConnection(function(err, connection) {
+        if (err) throw err;
+        let query = 'INSERT INTO teamConfiguration(groupName, teamId) VALUES ';
+        for(let i=0; i<groups.length; i++) {
+          if(i==groups.length-1) {
+            query += '(' + connection.escape(groups[i]) +
+                      ', (SELECT id FROM teams WHERE slackTeamId = ' +
+                        connection.escape(teamId) + '));';
+          }else {
+            // the last one
+            query += '(' + connection.escape(groups[i]) +
+                      ', (SELECT id FROM teams WHERE slackTeamId = ' +
+                        connection.escape(teamId) + ')),';
+          }
+        }
+        connection.query(
+          query,
+          function(err, rows) {
+          if (err) throw err;
+          // Setting the team as configured in it's table
+          connection.query(
+            'UPDATE teams SET isConfigured = TRUE WHERE slackTeamId = ' +
+              connection.escape(teamId) + ';',
+            function(err, rows) {
+            connection.release();
+            if (err) throw err;
+            // Convo end point
+            bot.replyInteractive(message, 'Nice work! The groups ' + groupsStr + ' are set to your team! :tada:');
+            bot.reply(message, 'The final step is to /invite me to your Gemification channel so people can' +
+              ' start giving gems!');
+          });
+        });
+      });
+    }
+    if(answer=='no') {
+      bot.replyInteractive(message, 'These groups will not be set for your team.');
+      bot.reply(message, 'Ok, let\'s start over.');
+      // Restarting the conversation
+      configureTeam(bot, createdBy);
+    }
+  }
 });
 
 // Message data contains the following content by this association
 // type, channel, user, text, ts, team, event, match
 controller.hears(':gem:', 'ambient', function(bot, message) {
-  // getting all of the usernames in the channel, then executing the callback
-  // function after the task gets all the usernames
-  getMembersInChannel(bot, message, function(membersInChannel) {
-    getSlackUsers(bot, message, function(allSlackUsers) {
-      // Logging
-      console.log('***************BEGIN DEBUGGING***************');
-      // Everything the user typed in the message
-      let messageText = message.text;
-      // Raw userId of the gem giver (ex. UW392NNSK)
-      let gemGiverId = message.user;
-      // Person who gave the :gem:
-      let gemGiverEncoded = '<@' + gemGiverId + '>';
-      // Trimmed raw username who is getting the gem (ex. UW392NNSK)
-      let gemReceiverIdTemp = String(messageText.match(/@[^\s]+/));
-      let gemReceiverId = gemReceiverIdTemp.substring(1,
-        gemReceiverIdTemp.length-1);
-      // Encoded username who is getting the gem (ex. <@UW392NNSK>, but will
-      // display as @john.doe
-      // in the Slack app)
-      let gemReceiver = '<@' + gemReceiverId + '>';
-      // Instantiating the reason letiable
-      let reason = '';
-      // Checking if the user type a reason after the keyword 'for ', if not, do
-      // nothing
-      if(messageText.includes('for ')) {
-        reason = messageText.substr(messageText.indexOf('for ') + 4);
-      }
-
-      // Logging
-      console.log('***************letIABLES***************' + '\n' +
-                  'Message Text: ' + JSON.stringify(messageText) + '\n' +
-                  'Gem Giver ID: ' + gemGiverId + '\n' +
-                  'Gem Giver Encoded: ' + gemGiverEncoded + '\n' +
-                  'Gem Receiver ID: ' + gemReceiverId + '\n' +
-                  'Gem Receiver Encoded: ' + gemReceiver + '\n' +
-                  'Reason: ' + reason
-              );
-
-      // This if-statement checks for a letiety of conditions
-
-      // First, it checks to see if the reason is an empty string -- it requires
-      // a reason for storage to the database.
-      let isReasonEmpty = (reason == '');
-      // Second, it checks to see if the member the user entered to give the gem
-      // TO is a valid username in the channel.
-      let isGemReceiverInvalid =
-        !(membersInChannel.indexOf(gemReceiverId) > -1);
-      // Third, it checks if the :gem: is typed after the word 'for' meaning the
-      // user typed their statement in the wrong order.
-      let isGemInReason = (reason.indexOf(':gem:') > -1);
-      // Fourth, it checks if the user typed in the message is after 'for'
-      // meaning the user typed their statement in the wrong order.
-      let isGemReceiverInReason = (reason.indexOf(gemReceiverId) > -1);
-      // Fifth, it checks to see if a user trying to give a gem to themselves.
-      let isSelfGivingGem = (gemGiverId == gemReceiverId);
-
-      // If none of these condition are met, the user typed a valid gem statment
-      // and program execution can proceed. Valid gem statements are as
-      // following...
-      // :gem: [@username] for [reason] -- suggested statement syntax
-      // [@username] :gem: for [reason]
-
-      // Logging
-      console.log('***************VALIDATIONS***************' + '\n' +
-                  'Is reason undefined: ' + isReasonEmpty + '\n' +
-                  'Is gem receiver invalid: ' + isGemReceiverInvalid + '\n' +
-                  'Is gem in reason statement: ' + isGemInReason + '\n' +
-                  'Is gem receiver in reason statement: ' +
-                    isGemReceiverInReason + '\n' +
-                  'Is user giving themselves a gem: ' + isSelfGivingGem
-              );
-
-
-      if (isReasonEmpty ||
-          isGemReceiverInvalid ||
-          isGemInReason ||
-          isGemReceiverInReason) {
-        // User typed an invalid statement, output error message
-        let errorMessage = 'Sorry, ' + gemGiverEncoded + ', there was an ' +
-          'error in your gem statement because:\n';
-        if(isGemReceiverInvalid) {
-          errorMessage += '- you didn\'t type a valid gem receiver\n';
-        }
-        if(isReasonEmpty) {
-          errorMessage += '- you didn\'t include a reason statement\n';
-        }
-        if(isGemInReason) {
-          errorMessage += '- you typed gems in your reason statement\n';
-        }
-        if(isGemReceiverInReason) {
-          errorMessage += '- you don\'t type users in your reason statement\n';
-        }
-        errorMessage += 'Please type your gem statement using a valid ' +
-          'username like this:\n' +
-          ':gem: [@username] for [reason]';
-
-        // The bot private messages the gem giver and explain their error
-        bot.startPrivateConversation({user: gemGiverId}, function(err, convo) {
-          if (err) {
-            console.log(err);
-          } else {
-            convo.say(errorMessage);
+  let util = require('util');
+  console.log(util.inspect(message));
+  isTeamConfigured(bot, function(isConfigured) {
+    if(isConfigured) {
+      // getting all of the usernames in the channel, then executing the callback
+      // function after the task gets all the usernames
+      getMembersInChannel(bot, message, function(membersInChannel) {
+        getSlackUsers(bot, message, function(allSlackUsers) {
+          // Logging
+          console.log('***************BEGIN DEBUGGING***************');
+          // Everything the user typed in the message
+          let messageText = message.text;
+          // Raw userId of the gem giver (ex. UW392NNSK)
+          let gemGiverId = message.user;
+          // Person who gave the :gem:
+          let gemGiverEncoded = '<@' + gemGiverId + '>';
+          // Trimmed raw username who is getting the gem (ex. UW392NNSK)
+          let gemReceiverIdTemp = String(messageText.match(/@[^\s]+/));
+          let gemReceiverId = gemReceiverIdTemp.substring(1,
+            gemReceiverIdTemp.length-1);
+          // Encoded username who is getting the gem (ex. <@UW392NNSK>, but will
+          // display as @john.doe
+          // in the Slack app)
+          let gemReceiver = '<@' + gemReceiverId + '>';
+          // Instantiating the reason letiable
+          let reason = '';
+          // Checking if the user type a reason after the keyword 'for ', if not, do
+          // nothing
+          if(messageText.includes('for ')) {
+            reason = messageText.substr(messageText.indexOf('for ') + 4);
           }
-        });
-      } else if(isSelfGivingGem) {
-        // Checks if the the someone is trying to give a gem to themselves
-        // The bot private messages the gem giver and explain their error
-        bot.startPrivateConversation({user: gemGiverId}, function(err, convo) {
-          if (err) {
-            console.log(err);
-          } else {
-            convo.say('Nice try, jackwagon. You can\'t give a gem to ' +
-              'yourself. You may only give gems to other people in this ' +
-              'channel.');
-          }
-        });
-      } else{
-        // User typed a valid statement, we have valid data, proceed with
-        // database calls
 
-        // Getting the usernames for users involved in the gem statement
-        // Username of the gem giver (ex. kerkhofj)
-        let gemGiverUsername = convertIdToName(allSlackUsers, gemGiverId);
-        // Username of the gem receiver (ex. emily.albulushi)
-        let gemReceiverUsername = convertIdToName(allSlackUsers, gemReceiverId);
-        console.log('***************CONVERTED USERNAMES***************' + '\n' +
-                    'Gem Giver Username: ' + gemGiverUsername + '\n' +
-                    'Gem Receiver Username: ' + gemReceiverUsername
+          // Logging
+          console.log('***************letIABLES***************' + '\n' +
+                      'Message Text: ' + JSON.stringify(messageText) + '\n' +
+                      'Gem Giver ID: ' + gemGiverId + '\n' +
+                      'Gem Giver Encoded: ' + gemGiverEncoded + '\n' +
+                      'Gem Receiver ID: ' + gemReceiverId + '\n' +
+                      'Gem Receiver Encoded: ' + gemReceiver + '\n' +
+                      'Reason: ' + reason
                   );
 
-        // Truncating the reason statement to 250 characters to fit in the
-        // database
-        reason = reason.substring(0, 250);
-        // Getting the database pool
-        DBPool.getConnection(function(err, connection) {
-          if (err) throw err;
-          let giveGemQuery = 'CALL incrementGems(' +
-          connection.escape(gemGiverId) + ', ' +
-          connection.escape(gemReceiverId) + ', ' +
-          connection.escape(reason) + ');';
+          // This if-statement checks for a letiety of conditions
 
-          connection.query(
-            giveGemQuery,
-            function(err, rows) {
-            if (err) throw err;
-            // Done with connection
-            connection.release();
-            // Don't use connection here, it has been returned to the pool
+          // First, it checks to see if the reason is an empty string -- it requires
+          // a reason for storage to the database.
+          let isReasonEmpty = (reason == '');
+          // Second, it checks to see if the member the user entered to give the gem
+          // TO is a valid username in the channel.
+          let isGemReceiverInvalid =
+            !(membersInChannel.indexOf(gemReceiverId) > -1);
+          // Third, it checks if the :gem: is typed after the word 'for' meaning the
+          // user typed their statement in the wrong order.
+          let isGemInReason = (reason.indexOf(':gem:') > -1);
+          // Fourth, it checks if the user typed in the message is after 'for'
+          // meaning the user typed their statement in the wrong order.
+          let isGemReceiverInReason = (reason.indexOf(gemReceiverId) > -1);
+          // Fifth, it checks to see if a user trying to give a gem to themselves.
+          let isSelfGivingGem = (gemGiverId == gemReceiverId);
 
-            // The bot private messages the gem giver and says their gem
-            // transaction was successful
+          // If none of these condition are met, the user typed a valid gem statment
+          // and program execution can proceed. Valid gem statements are as
+          // following...
+          // :gem: [@username] for [reason] -- suggested statement syntax
+          // [@username] :gem: for [reason]
+
+          // Logging
+          console.log('***************VALIDATIONS***************' + '\n' +
+                      'Is reason undefined: ' + isReasonEmpty + '\n' +
+                      'Is gem receiver invalid: ' + isGemReceiverInvalid +
+                        '\n' +
+                      'Is gem in reason statement: ' + isGemInReason + '\n' +
+                      'Is gem receiver in reason statement: ' +
+                        isGemReceiverInReason + '\n' +
+                      'Is user giving themselves a gem: ' + isSelfGivingGem
+                  );
+
+
+          if (isReasonEmpty ||
+              isGemReceiverInvalid ||
+              isGemInReason ||
+              isGemReceiverInReason) {
+            // User typed an invalid statement, output error message
+            let errorMessage = 'Sorry, ' + gemGiverEncoded + ', there was an ' +
+              'error in your gem statement because:\n';
+            if(isGemReceiverInvalid) {
+              errorMessage += '- you didn\'t type a valid gem receiver\n';
+            }
+            if(isReasonEmpty) {
+              errorMessage += '- you didn\'t include a reason statement\n';
+            }
+            if(isGemInReason) {
+              errorMessage += '- you typed gems in your reason statement\n';
+            }
+            if(isGemReceiverInReason) {
+              errorMessage += '- you don\'t type users in your reason ' +
+                                'statement\n';
+            }
+            errorMessage += 'Please type your gem statement using a valid ' +
+              'username like this:\n' +
+              ':gem: [@username] for [reason]';
+
+            // The bot private messages the gem giver and explain their error
             bot.startPrivateConversation({user: gemGiverId},
               function(err, convo) {
               if (err) {
                 console.log(err);
               } else {
-                convo.say(gemGiverUsername + ', you gave a gem to ' +
-                  gemReceiverUsername + '!');
+                convo.say(errorMessage);
               }
             });
-
-            // The bot private messages the gem receiver and says their gem
-            // transaction was successful
-            bot.startPrivateConversation({user: gemReceiverId},
+          } else if(isSelfGivingGem) {
+            // Checks if the the someone is trying to give a gem to themselves
+            // The bot private messages the gem giver and explain their error
+            bot.startPrivateConversation({user: gemGiverId},
               function(err, convo) {
               if (err) {
                 console.log(err);
               } else {
-                convo.say('You have received a gem from ' +
-                  gemGiverUsername + '!');
+                convo.say('Nice try, jackwagon. You can\'t give a gem to ' +
+                  'yourself. You may only give gems to other people in this ' +
+                  'channel.');
               }
             });
-          });
+          } else{
+            // User typed a valid statement, we have valid data, proceed with
+            // database calls
+
+            // Getting the usernames for users involved in the gem statement
+            // Username of the gem giver (ex. kerkhofj)
+            let gemGiverUsername = convertIdToName(allSlackUsers, gemGiverId);
+            // Username of the gem receiver (ex. emily.albulushi)
+            let gemReceiverUsername = convertIdToName(allSlackUsers,
+                                                        gemReceiverId);
+            console.log('***************CONVERTED USERNAMES***************' +
+                        '\n' + 'Gem Giver Username: ' + gemGiverUsername +
+                        '\n' + 'Gem Receiver Username: ' + gemReceiverUsername
+                      );
+
+            // Truncating the reason statement to 250 characters to fit in the
+            // database
+            reason = reason.substring(0, 250);
+            let teamId = bot.identifyTeam(); // Getting the team ID
+            // Getting the database pool
+            DBPool.getConnection(function(err, connection) {
+              if (err) throw err;
+              let giveGemQuery = 'CALL incrementGems(' +
+              connection.escape(gemGiverId) + ', ' +
+              connection.escape(gemReceiverId) + ', ' +
+              connection.escape(teamId) + ', ' +
+              connection.escape(reason) + ');';
+
+              connection.query(
+                giveGemQuery,
+                function(err, rows) {
+                if (err) throw err;
+                // Done with connection
+                connection.release();
+                // Don't use connection here, it has been returned to the pool
+
+                // The bot private messages the gem giver and says their gem
+                // transaction was successful
+                bot.startPrivateConversation({user: gemGiverId},
+                  function(err, convo) {
+                  if (err) {
+                    console.log(err);
+                  } else {
+                    convo.say(gemGiverUsername + ', you gave a gem to ' +
+                      gemReceiverUsername + '!');
+                  }
+                });
+
+                // The bot private messages the gem receiver and says their gem
+                // transaction was successful
+                bot.startPrivateConversation({user: gemReceiverId},
+                  function(err, convo) {
+                  if (err) {
+                    console.log(err);
+                  } else {
+                    convo.say('You have received a gem from ' +
+                      gemGiverUsername + '!');
+                  }
+                });
+              });
+            });
+          }
+          // Logging
+          console.log('***************END DEBUGGING***************');
         });
-      }
-      // Logging
-      console.log('***************END DEBUGGING***************');
-    });
+      });
+    }else {
+      teamConfiguredError(bot, message);
+    }
   });
 });
 
@@ -736,46 +967,53 @@ controller.hears(':gem:', 'ambient', function(bot, message) {
 // 10.) bateset39 1
 controller.hears('leaderboard', ['direct_mention', 'direct_message'],
   function(bot, message) {
-  // Getting the database pool
-  DBPool.getConnection(function(err, connection) {
-    if (err) throw err;
-    connection.query(
-      'SELECT userId, currentGems FROM userGem WHERE currentGems > 0 ' +
-        'ORDER BY currentGems DESC',
-      function(err, rows) {
-      if (err) throw err;
-      // Done with connection
-      connection.release();
+    isTeamConfigured(bot, function(isConfigured) {
+      if(isConfigured) {
+        // Getting the database pool
+        DBPool.getConnection(function(err, connection) {
+          if (err) throw err;
+          let teamId = bot.identifyTeam(); // Gets the ID of the team
+          connection.query(
+            'SELECT userId, currentGems FROM userGem WHERE currentGems > 0 AND ' +
+              'teamId = \'' + teamId + '\' ORDER BY currentGems DESC',
+            function(err, rows) {
+            if (err) throw err;
+            // Done with connection
+            connection.release();
 
-      // Adding the user which installed gemification as an admin
+            // Adding the user which installed gemification as an admin
 
-      // Getting all the usernames
-      getSlackUsersWithoutMessage(bot, function(allSlackUsers) {
-        // Don't use connection here, it has been returned to the pool
-        if(isEmptyObject(rows)) {
-          bot.reply(message, 'The leaderboard is empty. Try giving someone ' +
-            'a :gem:!');
-        } else{
-          // Parsing the leaderboard, looping thru everybody returned in the
-          // query
-          let leaderboardStr = 'Leaderboard:\n';
-          let numOfLoops = (rows.length > 10) ? 10 : rows.length;
-          for(let i=0; i<numOfLoops; i++) {
-            if(i == (numOfLoops-1)) {
-              leaderboardStr += (i+1) + '.) ' +
-                convertIdToName(allSlackUsers, rows[i].userId) + ' ' +
-                rows[i].currentGems;
-            } else{
-              leaderboardStr += (i+1) + '.) ' +
-                convertIdToName(allSlackUsers, rows[i].userId) + ' ' +
-                rows[i].currentGems + '\n';
-            }
-          }
-          bot.reply(message, leaderboardStr);
-        }
-      });
+            // Getting all the usernames
+            getSlackUsersWithoutMessage(bot, function(allSlackUsers) {
+              // Don't use connection here, it has been returned to the pool
+              if(isEmptyObject(rows)) {
+                bot.reply(message, 'The leaderboard is empty. Try giving someone ' +
+                  'a :gem:!');
+              } else{
+                // Parsing the leaderboard, looping thru everybody returned in the
+                // query
+                let leaderboardStr = 'Leaderboard:\n';
+                let numOfLoops = (rows.length > 10) ? 10 : rows.length;
+                for(let i=0; i<numOfLoops; i++) {
+                  if(i == (numOfLoops-1)) {
+                    leaderboardStr += (i+1) + '.) ' +
+                      convertIdToName(allSlackUsers, rows[i].userId) + ' ' +
+                      rows[i].currentGems;
+                  } else{
+                    leaderboardStr += (i+1) + '.) ' +
+                      convertIdToName(allSlackUsers, rows[i].userId) + ' ' +
+                      rows[i].currentGems + '\n';
+                  }
+                }
+                bot.reply(message, leaderboardStr);
+              }
+            });
+          });
+        });
+      }else {
+        teamConfiguredError(bot, message);
+      }
     });
-  });
 });
 
 // This function listens for a direct message from the admin to clear the
@@ -784,28 +1022,34 @@ controller.hears('leaderboard', ['direct_mention', 'direct_message'],
 // database adding a row to the gemPeriod table and firing a trigger in the
 // database to set all currentGems to 0 for all users.
 controller.hears('clear gems', 'direct_message', function(bot, message) {
-  // Validates if the user typed is an admin
-  // Getting the database pool
-  checkIsAdminByMessage(bot, message, function(isAdmin) {
-    if(isAdmin) {
-      DBPool.getConnection(function(err, connection) {
-        if (err) throw err;
-        connection.query(
-          'INSERT INTO gemPeriod VALUES();',
-          function(err, rows) {
-          if (err) throw err;
-          // Done with connection
-          connection.release();
-          // Don't use connection here, it has been returned to the pool
-          // The leaderboard was cleared successfully
-          bot.reply(message, 'The leaderboard was cleared successfully. Now ' +
-            'get out there and start earning yourself some gems! :gem:');
-        });
+  isTeamConfigured(bot, function(isConfigured) {
+    if(isConfigured) {
+      // Validates if the user typed is an admin
+      // Getting the database pool
+      checkIsAdminByMessage(bot, message, function(isAdmin) {
+        if(isAdmin) {
+          DBPool.getConnection(function(err, connection) {
+            if (err) throw err;
+            connection.query(
+              'INSERT INTO gemPeriod VALUES();',
+              function(err, rows) {
+              if (err) throw err;
+              // Done with connection
+              connection.release();
+              // Don't use connection here, it has been returned to the pool
+              // The leaderboard was cleared successfully
+              bot.reply(message, 'The leaderboard was cleared successfully. Now ' +
+                'get out there and start earning yourself some gems! :gem:');
+            });
+          });
+        } else{
+          // The user wasn't an admin
+          bot.reply(message, 'Nice try, wise guy, but you aren\'t an admin. Only' +
+            'admins can reset the gem count. :angry:');
+        }
       });
-    } else{
-      // The user wasn't an admin
-      bot.reply(message, 'Nice try, wise guy, but you aren\'t an admin. Only' +
-        'admins can reset the gem count. :angry:');
+    }else {
+      teamConfiguredError(bot, message);
     }
   });
 });
@@ -815,57 +1059,111 @@ controller.hears('clear gems', 'direct_message', function(bot, message) {
 // bumped up to admin role. If the user isn't found in the database, the user
 // is added as an admin. Only existing admins can add new admins.
 controller.hears('add admin', 'direct_message', function(bot, message) {
-  checkIsAdminByMessage(bot, message, function(isAdmin) {
-    if(isAdmin) {
-      // The user who typed the message is an admin
-      bot.startConversation(message, function(err, convo) {
-        convo.ask('Who would you like to add as an admin? Or type *cancel* ' +
-          'to quit.', [
-          {
-            pattern: 'cancel',
-            callback: function(response, convo) {
-              // Convo end point
-              convo.say('Cancel.. got it!');
-              convo.next();
-            },
-          },
-          {
-            default: true,
-            callback: function(response, convo) {
-              // getSlackUsers asyncronously gets all all of the Slack users
-              // that are the Slack team.
-              getSlackUsers(bot, message, function(allSlackUsers) {
-                // Trimmed raw username who is getting the admin privileges
-                // (ex. UW392NNSK)
-                let newAdminTemp = String(response.text.match(/@[^\s]+/));
-                let newAdminId = newAdminTemp.substring(1,
-                  newAdminTemp.length-1);
-                let newAdmin = '<@' + newAdminId + '>';
-                let isValidUsername = findUserById(allSlackUsers, newAdminId);
-                if (!isValidUsername) {
-                  // The username they entered wasn't valid
-                  convo.say('The username you entered isn\'t valid.');
-                  convo.repeat();
+  isTeamConfigured(bot, function(isConfigured) {
+    if(isConfigured) {
+      checkIsAdminByMessage(bot, message, function(isAdmin) {
+        if(isAdmin) {
+          // The user who typed the message is an admin
+          bot.startConversation(message, function(err, convo) {
+            convo.ask('Who would you like to add as an admin? Or type `cancel` ' +
+              'to quit.', [
+              {
+                pattern: 'cancel',
+                callback: function(response, convo) {
+                  // Convo end point
+                  convo.say('Cancel.. got it!');
                   convo.next();
-                } else{
-                  // The username they entered is valid
-                  checkIfUserExists(newAdminId, function(userExists) {
-                    if (userExists) {
-                      // The user is in the database
-                      // Validating that the user is not already set to be an
-                      // admin...
-                      checkIsAdminById(newAdminId, function(isAlreadyAdmin) {
-                        if (isAlreadyAdmin) {
-                          // The user that was entered is already an admin
-                          // Convo end point
-                          convo.say(newAdmin + ' is already an admin user in ' +
-                            'gemification.');
-                          convo.next();
+                },
+              },
+              {
+                default: true,
+                callback: function(response, convo) {
+                  // getSlackUsers asyncronously gets all all of the Slack users
+                  // that are the Slack team.
+                  getSlackUsers(bot, message, function(allSlackUsers) {
+                    // Trimmed raw username who is getting the admin privileges
+                    // (ex. UW392NNSK)
+                    let newAdminTemp = String(response.text.match(/@[^\s]+/));
+                    let newAdminId = newAdminTemp.substring(1,
+                      newAdminTemp.length-1);
+                    let newAdmin = '<@' + newAdminId + '>';
+                    let isValidUsername = findUserById(allSlackUsers, newAdminId);
+                    if (!isValidUsername) {
+                      // The username they entered wasn't valid
+                      convo.say('The username you entered isn\'t valid.');
+                      convo.repeat();
+                      convo.next();
+                    } else{
+                      // The username they entered is valid
+                      checkIfUserExists(newAdminId, function(userExists) {
+                        if (userExists) {
+                          // The user is in the database
+                          // Validating that the user is not already set to be an
+                          // admin...
+                          checkIsAdminById(newAdminId, function(isAlreadyAdmin) {
+                            if (isAlreadyAdmin) {
+                              // The user that was entered is already an admin
+                              // Convo end point
+                              convo.say(newAdmin + ' is already an admin user in ' +
+                                'gemification.');
+                              convo.next();
+                            } else{
+                              let newAdminName = convertIdToName(allSlackUsers,
+                                                                  newAdminId);
+                              // The user that was entered is not an admin, and
+                              // should be set as an admin
+                              convo.next();
+                              // Validate the what is about to happen with the user
+                              // Array for this function is
+                              // array[answer, newAdminId, newAdmin]
+                              let answerYes = ['yes', newAdminId, newAdmin];
+                              let answerYesJSON = JSON.stringify(answerYes);
+                              let answerNo = ['no', newAdminId, newAdmin];
+                              let answerNoJSON = JSON.stringify(answerNo);
+                              bot.reply(message, {
+                                attachments: [
+                                  {
+                                    title: 'Are you sure you want to set ' +
+                                      newAdmin + ' as an admin?',
+                                    // Set admin and user is in the database
+                                    callback_id: '1',
+                                    attachment_type: 'default',
+                                    actions: [
+                                      {
+                                        'name': 'yes',
+                                        'text': 'Yes',
+                                        'value': answerYesJSON,
+                                        'type': 'button',
+                                        'confirm': {
+                                          'title': 'Are you sure?',
+                                          'text': 'This will add ' + newAdminName +
+                                                    ' as an administrator!',
+                                          'ok_text': 'Yes',
+                                          'dismiss_text': 'No',
+                                        },
+                                      },
+                                      {
+                                        'name': 'no',
+                                        'text': 'No',
+                                        'value': answerNoJSON,
+                                        'type': 'button',
+                                      },
+                                    ],
+                                  },
+                                ],
+                             });
+                            }
+                          });
                         } else{
+                          // The user is not in the database
+
+                          // Now that we know the username entered is valid, and the
+                          // user isn't in the database, we should get the
+                          // username on the account from the id.
+
                           let newAdminName = convertIdToName(allSlackUsers,
                                                               newAdminId);
-                          // The user that was entered is not an admin, and
-                          // should be set as an admin
+
                           convo.next();
                           // Validate the what is about to happen with the user
                           // Array for this function is
@@ -879,8 +1177,8 @@ controller.hears('add admin', 'direct_message', function(bot, message) {
                               {
                                 title: 'Are you sure you want to set ' +
                                   newAdmin + ' as an admin?',
-                                // Set admin and user is in the database
-                                callback_id: '1',
+                                // Insert user into database and set as admin
+                                callback_id: '2',
                                 attachment_type: 'default',
                                 actions: [
                                   {
@@ -908,216 +1206,180 @@ controller.hears('add admin', 'direct_message', function(bot, message) {
                          });
                         }
                       });
-                    } else{
-                      // The user is not in the database
-
-                      // Now that we know the username entered is valid, and the
-                      // user isn't in the database, we should get the
-                      // username on the account from the id.
-
-                      let newAdminName = convertIdToName(allSlackUsers,
-                                                          newAdminId);
-
-                      convo.next();
-                      // Validate the what is about to happen with the user
-                      // Array for this function is
-                      // array[answer, newAdminId, newAdmin]
-                      let answerYes = ['yes', newAdminId, newAdmin];
-                      let answerYesJSON = JSON.stringify(answerYes);
-                      let answerNo = ['no', newAdminId, newAdmin];
-                      let answerNoJSON = JSON.stringify(answerNo);
-                      bot.reply(message, {
-                        attachments: [
-                          {
-                            title: 'Are you sure you want to set ' +
-                              newAdmin + ' as an admin?',
-                            // Insert user into database and set as admin
-                            callback_id: '2',
-                            attachment_type: 'default',
-                            actions: [
-                              {
-                                'name': 'yes',
-                                'text': 'Yes',
-                                'value': answerYesJSON,
-                                'type': 'button',
-                                'confirm': {
-                                  'title': 'Are you sure?',
-                                  'text': 'This will add ' + newAdminName +
-                                            ' as an administrator!',
-                                  'ok_text': 'Yes',
-                                  'dismiss_text': 'No',
-                                },
-                              },
-                              {
-                                'name': 'no',
-                                'text': 'No',
-                                'value': answerNoJSON,
-                                'type': 'button',
-                              },
-                            ],
-                          },
-                        ],
-                     });
                     }
-                  });
-                }
-             });
-           },
-         },
-        ]);
+                 });
+               },
+             },
+            ]);
+          });
+        } else{
+          // The user who typed the message isn't an admin
+          bot.reply(message, 'Nice try, wise guy, but you aren\'t an admin. Only ' +
+            'admins can add new admins. :angry:');
+        }
       });
-    } else{
-      // The user who typed the message isn't an admin
-      bot.reply(message, 'Nice try, wise guy, but you aren\'t an admin. Only ' +
-        'admins can add new admins. :angry:');
+    }else {
+      teamConfiguredError(bot, message);
     }
   });
 });
 
 controller.hears(['list admins', 'list admin'], 'direct_message',
   function(bot, message) {
-  listAdmins(bot, message);
+    isTeamConfigured(bot, function(isConfigured) {
+      if(isConfigured) {
+        listAdmins(bot, message);
+      }else {
+        teamConfiguredError(bot, message);
+      }
+    });
 });
 
 // This function removes an admin status for the user if the user has admin
 // status. There is a check to make sure you don't remove the last admin user.
 controller.hears('remove admin', 'direct_message', function(bot, message) {
-  checkIsAdminByMessage(bot, message, function(isAdmin) {
-    if(isAdmin) {
-      // The user who typed the message is an admin
-      bot.startConversation(message, function(err, convo) {
-        convo.ask('Who would you like to remove as an admin? Type *list* to' +
-                    ' show current admins or *cancel* to quit.', [
-          {
-            pattern: 'cancel',
-            callback: function(response, convo) {
-              // Convo end point
-              convo.say('Cancel.. got it!');
-              convo.next();
-            },
-          },
-          {
-            pattern: 'list',
-            callback: function(response, convo) {
-              // Listing the current admin
-              listAdmins(bot, message);
-              convo.repeat();
-              convo.next();
-            },
-          },
-          {
-            default: true,
-            callback: function(response, convo) {
-              // getSlackUsers asyncronously gets all all of the Slack users
-              // that are the Slack team.
-              getSlackUsers(bot, message, function(allSlackUsers) {
-                // Trimmed raw username who is getting the admin privileges
-                // (ex. UW392NNSK)
-                let removeAdminTemp = String(response.text.match(/@[^\s]+/));
-                let removeAdminId =
-                  removeAdminTemp.substring(1, removeAdminTemp.length-1);
-                let removeAdmin = '<@' + removeAdminId + '>';
-                checkIsLastAdmin(removeAdminId, function(islastAdmin) {
-                  let isValidUsername =
-                    findUserById(allSlackUsers, removeAdminId);
-                  if (!isValidUsername) {
-                    // The username they entered wasn't valid
-                    convo.say('The username you entered isn\'t valid.');
-                    convo.repeat();
-                    convo.next();
-                  } else if(islastAdmin) {
-                    // User is trying to remove himself as the last admin user
-                    convo.say('You are trying to remove yourself, but you' +
-                      ' are the last admin in this channel. Please add a new ' +
-                      'admin before removing yourself.');
-                    convo.next();
-                  } else{
-                    // The username they entered is valid and they are not the
-                    // last admin
-                    checkIfUserExists(removeAdminId, function(userExists) {
-                      if (userExists) {
-                        // The user is in the database
-                        // Validating that the user is not already set to be
-                        // an admin
-                        checkIsAdminById(removeAdminId,
-                          function(isAlreadyAdmin) {
-                          if (isAlreadyAdmin) {
-                            // The user that was entered is already an admin
-                            // and should be removed
-                            // Convo end point
-                            convo.next();
-                            // Validate the what is about to happen with the
-                            // user
+  isTeamConfigured(bot, function(isConfigured) {
+    if(isConfigured) {
+      checkIsAdminByMessage(bot, message, function(isAdmin) {
+        if(isAdmin) {
+          // The user who typed the message is an admin
+          bot.startConversation(message, function(err, convo) {
+            convo.ask('Who would you like to remove as an admin? Type `list` to' +
+                        ' show current admins or `cancel` to quit.', [
+              {
+                pattern: 'cancel',
+                callback: function(response, convo) {
+                  // Convo end point
+                  convo.say('Cancel.. got it!');
+                  convo.next();
+                },
+              },
+              {
+                pattern: 'list',
+                callback: function(response, convo) {
+                  // Listing the current admin
+                  listAdmins(bot, message);
+                  convo.repeat();
+                  convo.next();
+                },
+              },
+              {
+                default: true,
+                callback: function(response, convo) {
+                  // getSlackUsers asyncronously gets all all of the Slack users
+                  // that are the Slack team.
+                  getSlackUsers(bot, message, function(allSlackUsers) {
+                    // Trimmed raw username who is getting the admin privileges
+                    // (ex. UW392NNSK)
+                    let removeAdminTemp = String(response.text.match(/@[^\s]+/));
+                    let removeAdminId =
+                      removeAdminTemp.substring(1, removeAdminTemp.length-1);
+                    let removeAdmin = '<@' + removeAdminId + '>';
+                    checkIsLastAdmin(removeAdminId, function(islastAdmin) {
+                      let isValidUsername =
+                        findUserById(allSlackUsers, removeAdminId);
+                      if (!isValidUsername) {
+                        // The username they entered wasn't valid
+                        convo.say('The username you entered isn\'t valid.');
+                        convo.repeat();
+                        convo.next();
+                      } else if(islastAdmin) {
+                        // User is trying to remove himself as the last admin user
+                        convo.say('You are trying to remove yourself, but you' +
+                          ' are the last admin in this channel. Please add a new ' +
+                          'admin before removing yourself.');
+                        convo.next();
+                      } else{
+                        // The username they entered is valid and they are not the
+                        // last admin
+                        checkIfUserExists(removeAdminId, function(userExists) {
+                          if (userExists) {
+                            // The user is in the database
+                            // Validating that the user is not already set to be
+                            // an admin
+                            checkIsAdminById(removeAdminId,
+                              function(isAlreadyAdmin) {
+                              if (isAlreadyAdmin) {
+                                // The user that was entered is already an admin
+                                // and should be removed
+                                // Convo end point
+                                convo.next();
+                                // Validate the what is about to happen with the
+                                // user
 
-                            // Array for this function is
-                            // array[button-value, removeAdminId, removeAdmin]
-                            let answerYes = ['yes', removeAdminId, removeAdmin];
-                            let answerYesJSON = JSON.stringify(answerYes);
-                            let answerNo = ['no', removeAdminId, removeAdmin];
-                            let answerNoJSON = JSON.stringify(answerNo);
+                                // Array for this function is
+                                // array[button-value, removeAdminId, removeAdmin]
+                                let answerYes = ['yes', removeAdminId, removeAdmin];
+                                let answerYesJSON = JSON.stringify(answerYes);
+                                let answerNo = ['no', removeAdminId, removeAdmin];
+                                let answerNoJSON = JSON.stringify(answerNo);
 
-                            let removeAdminName = convertIdToName(allSlackUsers,
-                                                                removeAdminId);
+                                let removeAdminName = convertIdToName(allSlackUsers,
+                                                                    removeAdminId);
 
-                            bot.reply(message, {
-                              attachments: [
-                                {
-                                  title: 'Are you sure you want to remove ' +
-                                    removeAdmin + ' as an admin?',
-                                  // Remove admin
-                                  callback_id: '3',
-                                  attachment_type: 'default',
-                                  actions: [
+                                bot.reply(message, {
+                                  attachments: [
                                     {
-                                      'name': 'yes',
-                                      'text': 'Yes',
-                                      'value': answerYesJSON,
-                                      'type': 'button',
-                                      'confirm': {
-                                        'title': 'Are you sure?',
-                                        'text': 'This will remove ' +
-                                            removeAdminName +
-                                            ' as an administrator!',
-                                        'ok_text': 'Yes',
-                                        'dismiss_text': 'No',
-                                      },
-                                    },
-                                    {
-                                      'name': 'no',
-                                      'text': 'No',
-                                      'value': answerNoJSON,
-                                      'type': 'button',
+                                      title: 'Are you sure you want to remove ' +
+                                        removeAdmin + ' as an admin?',
+                                      // Remove admin
+                                      callback_id: '3',
+                                      attachment_type: 'default',
+                                      actions: [
+                                        {
+                                          'name': 'yes',
+                                          'text': 'Yes',
+                                          'value': answerYesJSON,
+                                          'type': 'button',
+                                          'confirm': {
+                                            'title': 'Are you sure?',
+                                            'text': 'This will remove ' +
+                                                removeAdminName +
+                                                ' as an administrator!',
+                                            'ok_text': 'Yes',
+                                            'dismiss_text': 'No',
+                                          },
+                                        },
+                                        {
+                                          'name': 'no',
+                                          'text': 'No',
+                                          'value': answerNoJSON,
+                                          'type': 'button',
+                                        },
+                                      ],
                                     },
                                   ],
-                                },
-                              ],
-                           });
+                               });
+                              } else{
+                                // The user that was entered is not an admin, and
+                                // should not be set as an admin
+                                convo.say(removeAdmin + ' is currently not' +
+                                                          ' an admin.');
+                                convo.next();
+                              }
+                            });
                           } else{
-                            // The user that was entered is not an admin, and
-                            // should not be set as an admin
-                            convo.say(removeAdmin + ' is currently not' +
-                                                      ' an admin.');
+                            // The user is not in the database and therefore isn't
+                            // an admin
+                            convo.say(removeAdmin + ' is currently not an admin.');
                             convo.next();
                           }
                         });
-                      } else{
-                        // The user is not in the database and therefore isn't
-                        // an admin
-                        convo.say(removeAdmin + ' is currently not an admin.');
-                        convo.next();
                       }
                     });
-                  }
-                });
-             });
-           },
-         },
-        ]);
+                 });
+               },
+             },
+            ]);
+          });
+        } else{
+          // The user who typed the message isn't an admin
+          bot.reply(message, 'Nice try, wise guy, but you aren\'t an admin. Only' +
+                      ' admins can add new admins. :angry:');
+        }
       });
-    } else{
-      // The user who typed the message isn't an admin
-      bot.reply(message, 'Nice try, wise guy, but you aren\'t an admin. Only' +
-                  ' admins can add new admins. :angry:');
+    }else {
+      teamConfiguredError(bot, message);
     }
   });
 });
@@ -1126,51 +1388,57 @@ controller.hears('remove admin', 'direct_message', function(bot, message) {
 // It listens for a direct message or direct me
 controller.hears('help', ['direct_mention', 'direct_message', 'ambient'],
   function(bot, message) {
-  checkIsAdminByMessage(bot, message, function(isAdmin) {
-    if(isAdmin) {
-      let helpStr = 'Need some help? We all do sometimes...\nHere are a list' +
-          ' of commands that you can use to interact with Gemification:\n\n';
+    isTeamConfigured(bot, function(isConfigured) {
+      if(isConfigured) {
+        checkIsAdminByMessage(bot, message, function(isAdmin) {
+          if(isAdmin) {
+            let helpStr = 'Need some help? We all do sometimes...\nHere are a list' +
+                ' of commands that you can use to interact with Gemification:\n\n';
 
-      let publicCommands = '*Public commands*\n';
-      publicCommands += '1) How to give someone a gem :gem:\n';
-      publicCommands += 'Type \':gem: [@username] for [reason]\'\n\n';
-      publicCommands += '2) How to show the leaderboard\n';
-      publicCommands += 'In a direct message, type \'leaderboard\'\n';
-      publicCommands += 'In a channel, type \'@gemification leaderboard\'\n\n';
+            let publicCommands = '*Public commands*\n';
+            publicCommands += '1) How to give someone a gem :gem:\n';
+            publicCommands += 'Type \':gem: [@username] for [reason]\'\n\n';
+            publicCommands += '2) How to show the leaderboard\n';
+            publicCommands += 'In a direct message, type \'leaderboard\'\n';
+            publicCommands += 'In a channel, type \'@gemification leaderboard\'\n\n';
 
-      let adminCommands = '*Admin commands (these can only be run if you\'re' +
-          ' an admin)*\n';
-      adminCommands += '1) How to clear the gem leaderboard\n';
-      adminCommands += 'In a direct message, type \'clear gems\'\n\n';
-      adminCommands += '2) How to list the current admins in Gemification\n';
-      adminCommands += 'In a direct message, type \'list admins\'\n\n';
-      adminCommands += '3) How to add an admin to Gemification\n';
-      adminCommands += 'In a direct message, type \'add admin\' and follow' +
-          ' the prompts\n\n';
-      adminCommands += '4) How to remove an admin from Gemification\n';
-      adminCommands += 'In a direct message, type \'remove admin\' and follow' +
-          ' the prompts\n\n';
-      adminCommands += '5) Get a full list of gems given in the current' +
-          ' time period.\n';
-      adminCommands += 'In a direct message, type \'all gems\'';
+            let adminCommands = '*Admin commands (these can only be run if you\'re' +
+                ' an admin)*\n';
+            adminCommands += '1) How to clear the gem leaderboard\n';
+            adminCommands += 'In a direct message, type \'clear gems\'\n\n';
+            adminCommands += '2) How to list the current admins in Gemification\n';
+            adminCommands += 'In a direct message, type \'list admins\'\n\n';
+            adminCommands += '3) How to add an admin to Gemification\n';
+            adminCommands += 'In a direct message, type \'add admin\' and follow' +
+                ' the prompts\n\n';
+            adminCommands += '4) How to remove an admin from Gemification\n';
+            adminCommands += 'In a direct message, type \'remove admin\' and follow' +
+                ' the prompts\n\n';
+            adminCommands += '5) Get a full list of gems given in the current' +
+                ' time period.\n';
+            adminCommands += 'In a direct message, type \'all gems\'';
 
-      helpStr += publicCommands + adminCommands;
-      bot.reply(message, helpStr);
-    } else{
-      let helpStr = 'Need some help? We all do sometimes...\nHere are a' +
-          ' list of commands that you can use to interact with ' +
-          'Gemification:\n\n';
+            helpStr += publicCommands + adminCommands;
+            bot.reply(message, helpStr);
+          } else{
+            let helpStr = 'Need some help? We all do sometimes...\nHere are a' +
+                ' list of commands that you can use to interact with ' +
+                'Gemification:\n\n';
 
-      let publicCommands = '1) How to give someone a gem :gem:\n';
-      publicCommands += 'Type \':gem: [@username] for [reason]\'\n\n';
-      publicCommands += '2) How to show the leaderboard\n';
-      publicCommands += 'In a direct message, type \'leaderboard\'\n';
-      publicCommands += 'In a channel, type \'@gemification leaderboard\'\n\n';
+            let publicCommands = '1) How to give someone a gem :gem:\n';
+            publicCommands += 'Type \':gem: [@username] for [reason]\'\n\n';
+            publicCommands += '2) How to show the leaderboard\n';
+            publicCommands += 'In a direct message, type \'leaderboard\'\n';
+            publicCommands += 'In a channel, type \'@gemification leaderboard\'\n\n';
 
-      helpStr += publicCommands;
-      bot.reply(message, helpStr);
-    }
-  });
+            helpStr += publicCommands;
+            bot.reply(message, helpStr);
+          }
+        });
+      }else {
+        teamConfiguredError(bot, message);
+      }
+    });
 });
 
 // Gemification bot listens for a direct meantion followed by the leaderboard
@@ -1190,50 +1458,61 @@ controller.hears('help', ['direct_mention', 'direct_message', 'ambient'],
 // 9.) weinks15 1
 // 10.) bateset39 1
 controller.hears('all gems', 'direct_message', function(bot, message) {
-  checkIsAdminByMessage(bot, message, function(isAdmin) {
-    if(isAdmin) {
-      // Getting the database pool
-      DBPool.getConnection(function(err, connection) {
-        if (err) throw err;
-        connection.query(
-          'SELECT userId, currentGems FROM userGem WHERE currentGems > 0 ' +
-          'ORDER BY currentGems DESC',
-          function(err, rows) {
-          if (err) throw err;
-          // Done with connection
-          connection.release();
-          // Don't use connection here, it has been returned to the pool
+  isTeamConfigured(bot, function(isConfigured) {
+    if(isConfigured) {
+      checkIsAdminByMessage(bot, message, function(isAdmin) {
+        if(isAdmin) {
+          // Getting the database pool
+          DBPool.getConnection(function(err, connection) {
+            if (err) throw err;
+            let teamId = bot.identifyTeam(); // Gets the ID of the team
+            connection.query(
+              'SELECT userId, totalGems FROM userGem WHERE totalGems > 0 AND ' +
+                'teamId = \'' + teamId + '\' ORDER BY totalGems DESC',
+              function(err, rows) {
+              if (err) throw err;
+              // Done with connection
+              connection.release();
+              // Don't use connection here, it has been returned to the pool
 
-          // Getting all the usernames
-          getSlackUsersWithoutMessage(bot, function(allSlackUsers) {
-            if(isEmptyObject(rows)) {
-              bot.reply(message, 'Nobody has received any gems yet. :sob: Try' +
-                                  ' giving someone a :gem:!');
-            } else{
-              // Parsing the leaderboard, looping thru everybody returned in the
-              // query
-              let leaderboardStr = 'All Gems:\n';
-              for(let i=0; i<rows.length; i++) {
-                if(i==rows.length-1) {
-                  leaderboardStr += (i+1) + '.) ' +
-                  convertIdToName(allSlackUsers, rows[i].userId) + ' ' +
-                  rows[i].currentGems;
+              // Getting all the usernames
+              getSlackUsersWithoutMessage(bot, function(allSlackUsers) {
+                if(isEmptyObject(rows)) {
+                  bot.reply(message, 'Nobody has received any gems yet. :sob: Try' +
+                                      ' giving someone a :gem:!');
                 } else{
-                  leaderboardStr += (i+1) + '.) ' +
-                  convertIdToName(allSlackUsers, rows[i].userId) + ' ' +
-                  rows[i].currentGems + '\n';
+                  // Parsing the leaderboard, looping thru everybody returned in the
+                  // query
+                  let leaderboardStr = 'All Gems:\n';
+                  for(let i=0; i<rows.length; i++) {
+                    if(i==rows.length-1) {
+                      leaderboardStr += (i+1) + '.) ' +
+                      convertIdToName(allSlackUsers, rows[i].userId) + ' ' +
+                      rows[i].totalGems;
+                    } else{
+                      leaderboardStr += (i+1) + '.) ' +
+                      convertIdToName(allSlackUsers, rows[i].userId) + ' ' +
+                      rows[i].totalGems + '\n';
+                    }
+                  }
+                  bot.reply(message, leaderboardStr);
                 }
-              }
-              bot.reply(message, leaderboardStr);
-            }
+              });
+            });
           });
-        });
+        } else{
+          bot.reply(message, 'Nice try, wise guy, but you aren\'t an admin. Only' +
+            ' admins can list all gems. :angry:');
+        }
       });
-    } else{
-      bot.reply(message, 'Nice try, wise guy, but you aren\'t an admin. Only' +
-        ' admins can list all gems. :angry:');
+    }else {
+      teamConfiguredError(bot, message);
     }
   });
+});
+
+controller.hears('configure', 'direct_message', function(bot, message) {
+  configureTeam(bot, message);
 });
 
 // This method causes the bot to react with a cow-hat to everything Austin says
