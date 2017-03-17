@@ -27,6 +27,12 @@ let Botkit = require('./lib/Botkit.js');
 let mysql = require('mysql');
 // Gemification server credentials
 let DBCredentials = require('./db-credentials.js');
+// Instantiating memory object caching
+let redis = require('redis');
+let redisClient = redis.createClient();
+redisClient.on('error', function(err) {
+  console.log('Error in Redis Client: ' + err);
+});
 
 if (!process.env.clientId ||
     !process.env.clientSecret ||
@@ -103,6 +109,7 @@ function getSlackUsers(bot, message, callback) {
  */
 function getSlackUsersWithoutMessage(bot, callback) {
   bot.api.users.list({}, function(err, response) {
+    if(err) throw err;
     callback(response.members);
   });
 }
@@ -338,14 +345,14 @@ function capitalizeFirstLetter(string) {
     return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
-function configureGemification(bot, createdBy) {
+function configureGemificationTeam(bot, createdBy) {
   isTeamConfigured(bot, function(isConfigured) {
     if(isConfigured) {
       // Team is already configured
       bot.startPrivateConversation({user: createdBy},
         function(err, convo) {
         if (err) {
-          console.log('Error in configureGemification: ' + err);
+          console.log('Error in configureGemificationTeam: ' + err);
         } else {
           convo.say('This team is already configured with Gemification.');
         }
@@ -383,7 +390,7 @@ function configureGemification(bot, createdBy) {
             {
               pattern: 'start over',
               callback: function(response, convo) {
-                configureTeam(bot, createdBy);
+                configureGemificationTeam(bot, createdBy);
                 convo.next();
               },
             },
@@ -448,7 +455,7 @@ function configureGemification(bot, createdBy) {
               ],
             },
           ],
-       });
+        });
       };
 
       // Configure the team
@@ -457,6 +464,94 @@ function configureGemification(bot, createdBy) {
   });
 }
 
+function getTeamGroups(bot, callback) {
+  let teamId = bot.identifyTeam();
+  DBPool.getConnection(function(err, connection) {
+    if (err) throw err;
+    connection.query(
+      'SELECT groupName FROM teamConfiguration WHERE teamId=(SELECT id FROM teams WHERE slackTeamId=' +
+          connection.escape(teamId) + ');',
+      function(err, rows) {
+      connection.release();
+      if (err) throw err;
+      if(typeof rows[0] !== 'undefined') {
+        callback(rows);
+      }else {
+        console.log('There aren\'t any groups set.');
+      }
+    });
+  });
+}
+
+function configureGemificationUsers(bot, createdBy) {
+  getSlackUsersWithoutMessage(bot, function(users) {
+    getTeamGroups(bot, function(groups) {
+      configurePerson(bot, createdBy, users, groups, 0);
+    });
+  });
+}
+
+function configurePerson(bot, createdBy, users, groups, userSelector) {
+  bot.startPrivateConversation({user: createdBy}, function(err, convo) {
+    if (err) {
+      console.log('Error in configurePerson: ' + err);
+    } else {
+      let userId = users[userSelector].id;
+      let userName = users[userSelector].name;
+      let buttons = [];
+      // assigning the groups to buttons
+      for(let i=0; i<groups.length; i++) {
+        let answer = [groups[i].groupName, userId, createdBy, userSelector, groups];
+        let answerJSON = JSON.stringify(answer);
+        let button = {
+          'name': groups[i].groupName,
+          'text': groups[i].groupName,
+          'value': answerJSON,
+          'type': 'button',
+        };
+        buttons.push(button);
+      }
+      // adding the ignore button
+      let ignoreAnswer = ['ignore', userId, createdBy, userSelector, groups];
+      let ignoreAnswerJSON = JSON.stringify(ignoreAnswer);
+      buttons.push({
+        'name': 'ignore',
+        'text': 'Ignore',
+        'value': ignoreAnswerJSON,
+        'type': 'button'
+      });
+      convo.ask({
+        text: 'Let\'s assign ' + userName + ' to a group.',
+        attachments: [
+          {
+            title: 'Which group would you like to set ' + userName + ' to?',
+            // Assign users to group
+            callback_id: '5',
+            attachment_type: 'default',
+            actions: buttons,
+          },
+        ],
+      });
+    }
+  });
+}
+
+function finishTeamConfiguration(bot, message) {
+  let teamId = bot.identifyTeam();
+  DBPool.getConnection(function(err, connection) {
+    if(err) throw err;
+    connection.query(
+      'UPDATE teams SET isConfigured = TRUE WHERE slackTeamId = ' +
+        connection.escape(teamId) + ';',
+      function(err, rows) {
+      connection.release();
+      if (err) throw err;
+      // Convo end point
+      bot.reply(message, 'Nice job! You have successfully configured your Slack team to work with Gemification. :tada:');
+      bot.reply(message, 'The last step is to /invite me to the channel you\'ll be using for Gemification. Without that, I\'m useless :cry:');
+    });
+  });
+}
 /* ~~~~~~~~~~~~~~~~~~~~End helper functions~~~~~~~~~~~~~~~~~~~~ */
 
 controller.setupWebserver(process.env.port, function(err, webserver) {
@@ -496,7 +591,7 @@ controller.on('create_bot', function(bot, config) {
         if (err) {
           console.log('Error in create_bot: ' + err);
         } else {
-          convo.say('Welcome to Gemification! :gem:');
+          convo.sayFirst('Welcome to Gemification! :gem:');
 
           // Adding the user which installed gemification as an admin
           getSlackUsersWithoutMessage(bot, function(allSlackUsers) {
@@ -514,19 +609,11 @@ controller.on('create_bot', function(bot, config) {
                   // Done with connection
                   connection.release();
                   // Don't use connection here, it has been returned to the pool
-                  bot.startPrivateConversation({user: config.createdBy},
-                    function(err, convo) {
-                    if (err) {
-                      console.log('Error after team init: ' + err);
-                    } else {
-
-                    }
-                  });
+                  console.log('Done with team init.');
+                  configureGemificationTeam(bot, config.createdBy);
                 }
               });
             });
-            console.log('Done with team init.');
-            configureGemification(bot, config.createdBy);
           });
         }
       });
@@ -575,10 +662,12 @@ controller.storage.teams.all(function(err, teams) {
 // Handlers for interactive messages
 controller.on('interactive_message_callback', function(bot, message) {
   let array;
+  let util = require('util');
   if(message.callback_id=='1' ||
       message.callback_id=='2' ||
       message.callback_id=='3' ||
-      message.callback_id=='4') {
+      message.callback_id=='4' ||
+      message.callback_id=='5') {
     try {
       array = JSON.parse(message.actions[0].value);
     } catch (ex) {
@@ -722,22 +811,16 @@ controller.on('interactive_message_callback', function(bot, message) {
                         connection.escape(teamId) + ')),';
           }
         }
+
         connection.query(
           query,
           function(err, rows) {
           if (err) throw err;
+          connection.release();
           // Setting the team as configured in it's table
-          connection.query(
-            'UPDATE teams SET isConfigured = TRUE WHERE slackTeamId = ' +
-              connection.escape(teamId) + ';',
-            function(err, rows) {
-            connection.release();
-            if (err) throw err;
-            // Convo end point
-            bot.replyInteractive(message, 'Nice work! The groups ' + groupsStr + ' are set to your team! :tada:');
-            bot.reply(message, 'The final step is to /invite me to your Gemification channel so people can' +
-              ' start giving gems!');
-          });
+          bot.replyInteractive(message, 'Nice work! The groups ' + groupsStr + ' are set to your team! :tada:');
+          bot.reply(message, 'Now that you have set up groups, let\'s assign the people to these groups.');
+          configureGemificationUsers(bot, createdBy);
         });
       });
     }
@@ -745,8 +828,84 @@ controller.on('interactive_message_callback', function(bot, message) {
       bot.replyInteractive(message, 'These groups will not be set for your team.');
       bot.reply(message, 'Ok, let\'s start over.');
       // Restarting the conversation
-      configureTeam(bot, createdBy);
+      configureGemificationTeam(bot, createdBy);
     }
+  }
+
+  if(message.callback_id=='5') {
+    getSlackUsersWithoutMessage(bot, function(users) {
+      // Array for this function is array[answer, userId, createdBy, userSelector, groups]
+      let answer = array[0];
+      let userId = array[1];
+      let createdBy = array[2];
+      let userSelector = array[3];
+      let groups = array[4];
+      let teamId = bot.identifyTeam();
+      let userEncoded = '<@' + userId + '>';
+
+      console.log('***************BEGIN SET USERS AS GROUPS CALLBACK***************');
+      console.log('***************VARIABLES***************' + '\n' +
+                  'answer: ' + answer + '\n' +
+                  'userId: ' + userId + '\n' +
+                  'createdBy: ' + createdBy + '\n' +
+                  'userSelector: ' + userSelector + '\n' +
+                  'number of users: ' + users.length + '\n' +
+                  'groups: ' + JSON.stringify(groups) + '\n' +
+                  'teamId: ' + teamId + '\n' +
+                  'userEncoded: ' + userEncoded
+              );
+        console.log('***************END SET USERS AS GROUPS CALLBACK***************');
+
+      if(answer == 'ignore') {
+        // add the user to the database without assigning the user to a group
+        DBPool.getConnection(function(err, connection) {
+          if (err) throw err;
+          let query = 'INSERT INTO userGem(userId, teamId) VALUES (' +
+                        connection.escape(userId) + ', ' +
+                        '(SELECT id FROM teams WHERE slackTeamId = ' + connection.escape(teamId) + ')' +
+                        ')';
+          connection.query(
+            query,
+            function(err, rows) {
+            if (err) throw err;
+            connection.release();
+            bot.replyInteractive(message, 'Ok, you chose to not set ' + userEncoded + ' to a group.');
+
+            // if we currently aren't on the last user, recurse
+            if(userSelector != users.length-1) {
+              configurePerson(bot, createdBy, users, groups, userSelector + 1);
+            }else {
+              finishTeamConfiguration(bot, message);
+            }
+          });
+        });
+      }else {
+        // add the user to the database and assign the user to a group
+        DBPool.getConnection(function(err, connection) {
+          if (err) throw err;
+          let query = 'INSERT INTO userGem(userId, teamId, groupId) VALUES (' +
+                        connection.escape(userId) + ', ' +
+                        '(SELECT id FROM teams WHERE slackTeamId = ' + connection.escape(teamId) + ')' + ', ' +
+                        '(SELECT id FROM teamConfiguration WHERE groupName = ' +
+                            connection.escape(answer) + ')' +
+                        ')';
+          connection.query(
+            query,
+            function(err, rows) {
+            if (err) throw err;
+            connection.release();
+            bot.replyInteractive(message, 'Perfect! ' + userEncoded + ' is now set to the ' + answer + ' group.');
+
+            // if we currently aren't on the last user, recurse
+            if(userSelector != users.length-1) {
+              configurePerson(bot, createdBy, users, groups, userSelector + 1);
+            }else {
+              finishTeamConfiguration(bot, message);
+            }
+          });
+        });
+      }
+    });
   }
 });
 
@@ -786,7 +945,7 @@ controller.hears(':gem:', 'ambient', function(bot, message) {
           }
 
           // Logging
-          console.log('***************letIABLES***************' + '\n' +
+          console.log('***************VARIABLES***************' + '\n' +
                       'Message Text: ' + JSON.stringify(messageText) + '\n' +
                       'Gem Giver ID: ' + gemGiverId + '\n' +
                       'Gem Giver Encoded: ' + gemGiverEncoded + '\n' +
@@ -1512,7 +1671,7 @@ controller.hears('all gems', 'direct_message', function(bot, message) {
 });
 
 controller.hears('configure', 'direct_message', function(bot, message) {
-  configureTeam(bot, message);
+  configureGemificationTeam(bot, message.user);
 });
 
 // This method causes the bot to react with a cow-hat to everything Austin says
