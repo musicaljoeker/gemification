@@ -94,23 +94,38 @@ function isEmptyObject(obj) {
  * @param {function} callback The function that is executed after the Slack API
  *                             is called.
  */
-function getSlackUsers(bot, message, callback) {
-  bot.api.users.list({}, function(err, response) {
-    callback(response.members);
-  });
-}
-
-/**
- * Gets all users in the Slack channel without the need for a message and runs
- * the callback function.
- * @param {JSON} bot The bot.
- * @param {function} callback The function that is executed after the Slack API
- *                             is called.
- */
-function getSlackUsersWithoutMessage(bot, callback) {
-  bot.api.users.list({}, function(err, response) {
-    if(err) throw err;
-    callback(response.members);
+function getSlackUsers(bot, callback) {
+  const ONE_MINUTE = 60 * 1000; // milliseconds
+  let currentTime = new Date();
+  let teamId = bot.identifyTeam();
+  let setRedis = function() {
+    // call the Slack API
+    bot.api.users.list({}, function(err, response) {
+      if(err) throw err;
+      let membersObj = {members: response.members, time: new Date()};
+      redisClient.set(teamId, JSON.stringify(membersObj));
+      callback(membersObj.members);
+    });
+  };
+  redisClient.get(teamId, function(err, reply) {
+    if (err) throw err;
+    // cache is not set
+    reply = JSON.parse(reply);
+    let replyTime;
+    if(reply) {
+      // if there is a stored value, set the time to a new date object
+      replyTime = new Date(reply.time);
+    }
+    if(reply==null) {
+      console.log('* REDIS: Called Slack API and setting in cache.');
+      setRedis();
+    }else if((currentTime - replyTime) > ONE_MINUTE) {
+      console.log('* REDIS: Old users list. Called Slack API and setting a new one in the cache.');
+      setRedis();
+    }else {
+      console.log('* REDIS: Grabbing Slack users from cache.');
+      callback(reply.members);
+    }
   });
 }
 
@@ -302,13 +317,12 @@ function checkIsLastAdmin(removeAdminId, callback) {
   });
 }
 
-function isTeamConfigured(bot, callback) {
+function isUserConfigured(bot, userId, callback) {
   DBPool.getConnection(function(err, connection) {
     if (err) throw err;
     let teamId = bot.identifyTeam();
     connection.query(
-      'SELECT COUNT(isConfigured) as isConfigured FROM teams WHERE slackTeamId=' +
-          connection.escape(teamId) + ' AND isConfigured=\'1\';',
+      'SELECT COUNT(groupId) as isConfigured FROM userGem WHERE userId=' + connection.escape(userId) + ';',
       function(err, rows) {
       connection.release();
       if (err) throw err;
@@ -328,15 +342,39 @@ function isTeamConfigured(bot, callback) {
   });
 }
 
-function teamConfiguredError(bot, message) {
+function isTeamConfigured(bot, callback) {
+  DBPool.getConnection(function(err, connection) {
+    if (err) throw err;
+    let teamId = bot.identifyTeam();
+    connection.query(
+      'SELECT COUNT(isConfigured) as isConfigured FROM teams WHERE teamId=' + connection.escape(teamId) + ';',
+      function(err, rows) {
+      connection.release();
+      if (err) throw err;
+      if(typeof rows[0] !== 'undefined') {
+        if(rows[0].isConfigured==1) {
+          // team is configured
+          callback(true);
+        } else {
+          // team is not configured
+          callback(false);
+        }
+      } else{
+        // team isn't in the table, and therefore isn't configured
+        callback(false);
+      }
+    });
+  });
+}
+
+function userConfiguredError(bot, message) {
   bot.startPrivateConversation({user: message.user},
     function(err, convo) {
     if (err) {
       console.log(err);
     } else {
-      convo.say('You must configure Gemification before you are able to' +
-                ' use this command.\nTo configure, have an admin run the' +
-                ' `configure` command in a direct message');
+      convo.say('You are not configured in Gemification. Please talk to a ' +
+                  'Gemification admin and have them configure you.');
     }
   });
 }
@@ -355,6 +393,7 @@ function configureGemificationTeam(bot, createdBy) {
           console.log('Error in configureGemificationTeam: ' + err);
         } else {
           convo.say('This team is already configured with Gemification.');
+          console.log('info: User tried to reconfigure Gemification using initializing function.');
         }
       });
     }else {
@@ -380,6 +419,7 @@ function configureGemificationTeam(bot, createdBy) {
                   convo.say('Please enter at least one group for your ' +
                             'Slack team.');
                   convo.repeat();
+                  console.log('info: User typed done before setting any groups.');
                   convo.next();
                 }else {
                   confirmGroups(response, convo);
@@ -390,6 +430,7 @@ function configureGemificationTeam(bot, createdBy) {
             {
               pattern: 'start over',
               callback: function(response, convo) {
+                console.log('info: User is starting over.');
                 configureGemificationTeam(bot, createdBy);
                 convo.next();
               },
@@ -400,13 +441,16 @@ function configureGemificationTeam(bot, createdBy) {
                 let group = capitalizeFirstLetter(response.text);
                 if(groups.indexOf(group) > -1) {
                   // group was already added
+                  console.log('info: User typed a group that was already added.');
                   convo.say(group + ' was already added as a group.');
                 }else {
                   if(group.length > 20) {
+                    console.log('info: User typed a group that was more than 20 characters.');
                     convo.say('A group must be 20 characters or less.');
                   } else{
                     // it is a new group and is added to the groups array
                     groups.push(group);
+                    console.log('info: User added ' + group + ' as a group.');
                     convo.say(group + ' was added as a group');
                   }
                 }
@@ -484,7 +528,7 @@ function getTeamGroups(bot, callback) {
 }
 
 function configureGemificationUsers(bot, createdBy) {
-  getSlackUsersWithoutMessage(bot, function(users) {
+  getSlackUsers(bot, function(users) {
     getTeamGroups(bot, function(groups) {
       configurePerson(bot, createdBy, users, groups, 0);
     });
@@ -496,42 +540,61 @@ function configurePerson(bot, createdBy, users, groups, userSelector) {
     if (err) {
       console.log('Error in configurePerson: ' + err);
     } else {
-      let userId = users[userSelector].id;
-      let userName = users[userSelector].name;
-      let buttons = [];
-      // assigning the groups to buttons
-      for(let i=0; i<groups.length; i++) {
-        let answer = [groups[i].groupName, userId, createdBy, userSelector, groups];
-        let answerJSON = JSON.stringify(answer);
-        let button = {
-          'name': groups[i].groupName,
-          'text': groups[i].groupName,
-          'value': answerJSON,
-          'type': 'button',
-        };
-        buttons.push(button);
+      let isBot = users[userSelector].is_bot;
+      if(isBot) {
+        // user is a bot and should be skipped
+        console.log('info: User ' + users[userSelector].name + ' is a bot and is being skipped.');
+        if(userSelector != users.length-1) {
+          // if user isn't the last user in the list
+          configurePerson(bot, createdBy, users, groups, userSelector + 1);
+        }else {
+          // if user is the last user in the list
+          finishTeamConfiguration(bot, message);
+        }
+      }else {
+        // user is not a bot and shouldn't be skipped
+        let userId = users[userSelector].id;
+        let userName;
+        if(users[userSelector].real_name) {
+          userName = users[userSelector].real_name;
+        }else {
+          userName = users[userSelector].name;
+        }
+        let buttons = [];
+        // assigning the groups to buttons
+        for(let i=0; i<groups.length; i++) {
+          let answer = [groups[i].groupName, userId, createdBy, userSelector, groups];
+          let answerJSON = JSON.stringify(answer);
+          let button = {
+            'name': groups[i].groupName,
+            'text': groups[i].groupName,
+            'value': answerJSON,
+            'type': 'button',
+          };
+          buttons.push(button);
+        }
+        // adding the ignore button
+        let ignoreAnswer = ['ignore', userId, createdBy, userSelector, groups];
+        let ignoreAnswerJSON = JSON.stringify(ignoreAnswer);
+        buttons.push({
+          'name': 'ignore',
+          'text': 'Ignore',
+          'value': ignoreAnswerJSON,
+          'type': 'button'
+        });
+        convo.ask({
+          text: 'Let\'s assign ' + userName + ' to a group.',
+          attachments: [
+            {
+              title: 'Which group would you like to set ' + userName + ' to?',
+              // Assign users to group
+              callback_id: '5',
+              attachment_type: 'default',
+              actions: buttons,
+            },
+          ],
+        });
       }
-      // adding the ignore button
-      let ignoreAnswer = ['ignore', userId, createdBy, userSelector, groups];
-      let ignoreAnswerJSON = JSON.stringify(ignoreAnswer);
-      buttons.push({
-        'name': 'ignore',
-        'text': 'Ignore',
-        'value': ignoreAnswerJSON,
-        'type': 'button'
-      });
-      convo.ask({
-        text: 'Let\'s assign ' + userName + ' to a group.',
-        attachments: [
-          {
-            title: 'Which group would you like to set ' + userName + ' to?',
-            // Assign users to group
-            callback_id: '5',
-            attachment_type: 'default',
-            actions: buttons,
-          },
-        ],
-      });
     }
   });
 }
@@ -547,8 +610,9 @@ function finishTeamConfiguration(bot, message) {
       connection.release();
       if (err) throw err;
       // Convo end point
+      console.log('info: Configuration for team ' + teamId + ' is finished.');
       bot.reply(message, 'Nice job! You have successfully configured your Slack team to work with Gemification. :tada:');
-      bot.reply(message, 'The last step is to /invite me to the channel you\'ll be using for Gemification. Without that, I\'m useless :cry:');
+      bot.reply(message, 'The last step is to /invite me to the channel you\'ll be using for Gemification. Without that, I won\'t be able to do anything.');
     });
   });
 }
@@ -594,7 +658,7 @@ controller.on('create_bot', function(bot, config) {
           convo.sayFirst('Welcome to Gemification! :gem:');
 
           // Adding the user which installed gemification as an admin
-          getSlackUsersWithoutMessage(bot, function(allSlackUsers) {
+          getSlackUsers(bot, function(allSlackUsers) {
             let teamId = bot.identifyTeam(); // Gets the team ID
             // Getting the database pool
             DBPool.getConnection(function(err, connection) {
@@ -662,7 +726,6 @@ controller.storage.teams.all(function(err, teams) {
 // Handlers for interactive messages
 controller.on('interactive_message_callback', function(bot, message) {
   let array;
-  let util = require('util');
   if(message.callback_id=='1' ||
       message.callback_id=='2' ||
       message.callback_id=='3' ||
@@ -695,6 +758,7 @@ controller.on('interactive_message_callback', function(bot, message) {
           connection.release();
           if (err) throw err;
           // Convo end point
+          console.log('info: Setting ' + newAdmin + ' as an admin.');
           bot.replyInteractive(message, newAdmin + ' is now set as an admin.');
           // Notifying the new admin they have been set as an admin
           bot.startPrivateConversation({user: newAdminId},
@@ -736,6 +800,7 @@ controller.on('interactive_message_callback', function(bot, message) {
           connection.release();
           if (err) throw err;
           // Convo end point
+          console.log('info: Setting ' + newAdmin + ' as an admin.');
           bot.replyInteractive(message, newAdmin + ' is now set as an admin.');
         });
       });
@@ -765,6 +830,7 @@ controller.on('interactive_message_callback', function(bot, message) {
           connection.release();
           if (err) throw err;
           // Convo end point
+          console.log('info: Removing ' + removeAdmin + ' from being an admin.');
           bot.replyInteractive(message, removeAdmin + ' is now removed ' +
             'from being an admin.');
           // Sending the user a notification they have been removed as an admin
@@ -818,6 +884,7 @@ controller.on('interactive_message_callback', function(bot, message) {
           if (err) throw err;
           connection.release();
           // Setting the team as configured in it's table
+          console.log('info: The groups ' + groupsStr + ' are being set for team ' + teamId + '.');
           bot.replyInteractive(message, 'Nice work! The groups ' + groupsStr + ' are set to your team! :tada:');
           bot.reply(message, 'Now that you have set up groups, let\'s assign the people to these groups.');
           configureGemificationUsers(bot, createdBy);
@@ -833,7 +900,7 @@ controller.on('interactive_message_callback', function(bot, message) {
   }
 
   if(message.callback_id=='5') {
-    getSlackUsersWithoutMessage(bot, function(users) {
+    getSlackUsers(bot, function(users) {
       // Array for this function is array[answer, userId, createdBy, userSelector, groups]
       let answer = array[0];
       let userId = array[1];
@@ -843,7 +910,6 @@ controller.on('interactive_message_callback', function(bot, message) {
       let teamId = bot.identifyTeam();
       let userEncoded = '<@' + userId + '>';
 
-      console.log('***************BEGIN SET USERS AS GROUPS CALLBACK***************');
       console.log('***************VARIABLES***************' + '\n' +
                   'answer: ' + answer + '\n' +
                   'userId: ' + userId + '\n' +
@@ -854,7 +920,7 @@ controller.on('interactive_message_callback', function(bot, message) {
                   'teamId: ' + teamId + '\n' +
                   'userEncoded: ' + userEncoded
               );
-        console.log('***************END SET USERS AS GROUPS CALLBACK***************');
+        console.log('***************END VARIALBES***************');
 
       if(answer == 'ignore') {
         // add the user to the database without assigning the user to a group
@@ -869,6 +935,7 @@ controller.on('interactive_message_callback', function(bot, message) {
             function(err, rows) {
             if (err) throw err;
             connection.release();
+            console.log('info: Did not set user ' + userId + ' on team ' + teamId + ' to a group.');
             bot.replyInteractive(message, 'Ok, you chose to not set ' + userEncoded + ' to a group.');
 
             // if we currently aren't on the last user, recurse
@@ -880,20 +947,28 @@ controller.on('interactive_message_callback', function(bot, message) {
           });
         });
       }else {
-        // add the user to the database and assign the user to a group
         DBPool.getConnection(function(err, connection) {
           if (err) throw err;
-          let query = 'INSERT INTO userGem(userId, teamId, groupId) VALUES (' +
-                        connection.escape(userId) + ', ' +
-                        '(SELECT id FROM teams WHERE slackTeamId = ' + connection.escape(teamId) + ')' + ', ' +
-                        '(SELECT id FROM teamConfiguration WHERE groupName = ' +
-                            connection.escape(answer) + ')' +
-                        ')';
+          let query;
+          if(userId==createdBy) {
+            // user is assigning group to self
+            query = 'UPDATE userGem SET groupId=(SELECT id FROM teamConfiguration WHERE groupName = ' +
+                      connection.escape(answer) + ') WHERE userId=' + connection.escape(userId);
+          }else {
+            // add the user to the database and assign the user to a group
+            query = 'INSERT INTO userGem(userId, teamId, groupId) VALUES (' +
+                          connection.escape(userId) + ', ' +
+                          '(SELECT id FROM teams WHERE slackTeamId = ' + connection.escape(teamId) + ')' + ', ' +
+                          '(SELECT id FROM teamConfiguration WHERE groupName = ' +
+                              connection.escape(answer) + ')' +
+                          ')';
+          }
           connection.query(
             query,
             function(err, rows) {
             if (err) throw err;
             connection.release();
+            console.log('info: User ' + userId + ' on team ' + teamId + ' is set to the ' + answer + ' group.');
             bot.replyInteractive(message, 'Perfect! ' + userEncoded + ' is now set to the ' + answer + ' group.');
 
             // if we currently aren't on the last user, recurse
@@ -912,14 +987,12 @@ controller.on('interactive_message_callback', function(bot, message) {
 // Message data contains the following content by this association
 // type, channel, user, text, ts, team, event, match
 controller.hears(':gem:', 'ambient', function(bot, message) {
-  let util = require('util');
-  console.log(util.inspect(message));
-  isTeamConfigured(bot, function(isConfigured) {
+  isUserConfigured(bot, message.user, function(isConfigured) {
     if(isConfigured) {
       // getting all of the usernames in the channel, then executing the callback
       // function after the task gets all the usernames
       getMembersInChannel(bot, message, function(membersInChannel) {
-        getSlackUsers(bot, message, function(allSlackUsers) {
+        getSlackUsers(bot, function(allSlackUsers) {
           // Logging
           console.log('***************BEGIN DEBUGGING***************');
           // Everything the user typed in the message
@@ -1103,7 +1176,7 @@ controller.hears(':gem:', 'ambient', function(bot, message) {
         });
       });
     }else {
-      teamConfiguredError(bot, message);
+      userConfiguredError(bot, message);
     }
   });
 });
@@ -1126,51 +1199,57 @@ controller.hears(':gem:', 'ambient', function(bot, message) {
 // 10.) bateset39 1
 controller.hears('leaderboard', ['direct_mention', 'direct_message'],
   function(bot, message) {
-    isTeamConfigured(bot, function(isConfigured) {
+    isUserConfigured(bot, message.user, function(isConfigured) {
       if(isConfigured) {
-        // Getting the database pool
-        DBPool.getConnection(function(err, connection) {
-          if (err) throw err;
-          let teamId = bot.identifyTeam(); // Gets the ID of the team
-          connection.query(
-            'SELECT userId, currentGems FROM userGem WHERE currentGems > 0 AND ' +
-              'teamId = \'' + teamId + '\' ORDER BY currentGems DESC',
-            function(err, rows) {
-            if (err) throw err;
-            // Done with connection
-            connection.release();
+        getTeamGroups(bot, function(groups) {
+          for(let i=0; i<groups.length; i++) {
+            let groupName = groups[i].groupName;
+            // Getting the database pool
+            DBPool.getConnection(function(err, connection) {
+              if (err) throw err;
+              let teamId = bot.identifyTeam(); // Gets the ID of the team
+              let query = 'SELECT userId, currentGems FROM userGem WHERE ' +
+                            'teamId=(SELECT id FROM teams WHERE slackTeamId=' + connection.escape(teamId) + ') ' +
+                            'AND groupId=(SELECT id FROM teamConfiguration WHERE groupName=' + connection.escape(groupName) + ') ' +
+                            'AND currentGems > 0 ORDER BY currentGems DESC';
+              connection.query(
+                query,
+                function(err, rows) {
+                if (err) throw err;
+                // Done with connection
+                connection.release();
 
-            // Adding the user which installed gemification as an admin
-
-            // Getting all the usernames
-            getSlackUsersWithoutMessage(bot, function(allSlackUsers) {
-              // Don't use connection here, it has been returned to the pool
-              if(isEmptyObject(rows)) {
-                bot.reply(message, 'The leaderboard is empty. Try giving someone ' +
-                  'a :gem:!');
-              } else{
-                // Parsing the leaderboard, looping thru everybody returned in the
-                // query
-                let leaderboardStr = 'Leaderboard:\n';
-                let numOfLoops = (rows.length > 10) ? 10 : rows.length;
-                for(let i=0; i<numOfLoops; i++) {
-                  if(i == (numOfLoops-1)) {
-                    leaderboardStr += (i+1) + '.) ' +
-                      convertIdToName(allSlackUsers, rows[i].userId) + ' ' +
-                      rows[i].currentGems;
+                // Getting all the usernames
+                getSlackUsers(bot, function(allSlackUsers) {
+                  // Don't use connection here, it has been returned to the pool
+                  if(isEmptyObject(rows)) {
+                    bot.reply(message, 'The ' + groupName + ' leaderboard is empty. Try giving someone ' +
+                      'a :gem:!');
                   } else{
-                    leaderboardStr += (i+1) + '.) ' +
-                      convertIdToName(allSlackUsers, rows[i].userId) + ' ' +
-                      rows[i].currentGems + '\n';
+                    // Parsing the leaderboard, looping thru everybody returned in the
+                    // query
+                    let leaderboardStr = groupName + ' Leaderboard:\n';
+                    let numOfLoops = (rows.length > 10) ? 10 : rows.length;
+                    for(let i=0; i<numOfLoops; i++) {
+                      if(i == (numOfLoops-1)) {
+                        leaderboardStr += (i+1) + '.) ' +
+                          convertIdToName(allSlackUsers, rows[i].userId) + ' ' +
+                          rows[i].currentGems;
+                      } else{
+                        leaderboardStr += (i+1) + '.) ' +
+                          convertIdToName(allSlackUsers, rows[i].userId) + ' ' +
+                          rows[i].currentGems + '\n';
+                      }
+                    }
+                    bot.reply(message, leaderboardStr);
                   }
-                }
-                bot.reply(message, leaderboardStr);
-              }
+                });
+              });
             });
-          });
+          }
         });
       }else {
-        teamConfiguredError(bot, message);
+        userConfiguredError(bot, message);
       }
     });
 });
@@ -1181,7 +1260,7 @@ controller.hears('leaderboard', ['direct_mention', 'direct_message'],
 // database adding a row to the gemPeriod table and firing a trigger in the
 // database to set all currentGems to 0 for all users.
 controller.hears('clear gems', 'direct_message', function(bot, message) {
-  isTeamConfigured(bot, function(isConfigured) {
+  isUserConfigured(bot, message.user, function(isConfigured) {
     if(isConfigured) {
       // Validates if the user typed is an admin
       // Getting the database pool
@@ -1208,7 +1287,7 @@ controller.hears('clear gems', 'direct_message', function(bot, message) {
         }
       });
     }else {
-      teamConfiguredError(bot, message);
+      userConfiguredError(bot, message);
     }
   });
 });
@@ -1218,7 +1297,7 @@ controller.hears('clear gems', 'direct_message', function(bot, message) {
 // bumped up to admin role. If the user isn't found in the database, the user
 // is added as an admin. Only existing admins can add new admins.
 controller.hears('add admin', 'direct_message', function(bot, message) {
-  isTeamConfigured(bot, function(isConfigured) {
+  isUserConfigured(bot, message.user, function(isConfigured) {
     if(isConfigured) {
       checkIsAdminByMessage(bot, message, function(isAdmin) {
         if(isAdmin) {
@@ -1239,7 +1318,7 @@ controller.hears('add admin', 'direct_message', function(bot, message) {
                 callback: function(response, convo) {
                   // getSlackUsers asyncronously gets all all of the Slack users
                   // that are the Slack team.
-                  getSlackUsers(bot, message, function(allSlackUsers) {
+                  getSlackUsers(bot, function(allSlackUsers) {
                     // Trimmed raw username who is getting the admin privileges
                     // (ex. UW392NNSK)
                     let newAdminTemp = String(response.text.match(/@[^\s]+/));
@@ -1378,18 +1457,18 @@ controller.hears('add admin', 'direct_message', function(bot, message) {
         }
       });
     }else {
-      teamConfiguredError(bot, message);
+      userConfiguredError(bot, message);
     }
   });
 });
 
 controller.hears(['list admins', 'list admin'], 'direct_message',
   function(bot, message) {
-    isTeamConfigured(bot, function(isConfigured) {
+    isUserConfigured(bot, message.user, function(isConfigured) {
       if(isConfigured) {
         listAdmins(bot, message);
       }else {
-        teamConfiguredError(bot, message);
+        userConfiguredError(bot, message);
       }
     });
 });
@@ -1397,7 +1476,7 @@ controller.hears(['list admins', 'list admin'], 'direct_message',
 // This function removes an admin status for the user if the user has admin
 // status. There is a check to make sure you don't remove the last admin user.
 controller.hears('remove admin', 'direct_message', function(bot, message) {
-  isTeamConfigured(bot, function(isConfigured) {
+  isUserConfigured(bot, message.user, function(isConfigured) {
     if(isConfigured) {
       checkIsAdminByMessage(bot, message, function(isAdmin) {
         if(isAdmin) {
@@ -1427,7 +1506,7 @@ controller.hears('remove admin', 'direct_message', function(bot, message) {
                 callback: function(response, convo) {
                   // getSlackUsers asyncronously gets all all of the Slack users
                   // that are the Slack team.
-                  getSlackUsers(bot, message, function(allSlackUsers) {
+                  getSlackUsers(bot, function(allSlackUsers) {
                     // Trimmed raw username who is getting the admin privileges
                     // (ex. UW392NNSK)
                     let removeAdminTemp = String(response.text.match(/@[^\s]+/));
@@ -1538,7 +1617,7 @@ controller.hears('remove admin', 'direct_message', function(bot, message) {
         }
       });
     }else {
-      teamConfiguredError(bot, message);
+      userConfiguredError(bot, message);
     }
   });
 });
@@ -1547,7 +1626,7 @@ controller.hears('remove admin', 'direct_message', function(bot, message) {
 // It listens for a direct message or direct me
 controller.hears('help', ['direct_mention', 'direct_message', 'ambient'],
   function(bot, message) {
-    isTeamConfigured(bot, function(isConfigured) {
+    isUserConfigured(bot, message.user, function(isConfigured) {
       if(isConfigured) {
         checkIsAdminByMessage(bot, message, function(isAdmin) {
           if(isAdmin) {
@@ -1595,7 +1674,7 @@ controller.hears('help', ['direct_mention', 'direct_message', 'ambient'],
           }
         });
       }else {
-        teamConfiguredError(bot, message);
+        userConfiguredError(bot, message);
       }
     });
 });
@@ -1617,7 +1696,7 @@ controller.hears('help', ['direct_mention', 'direct_message', 'ambient'],
 // 9.) weinks15 1
 // 10.) bateset39 1
 controller.hears('all gems', 'direct_message', function(bot, message) {
-  isTeamConfigured(bot, function(isConfigured) {
+  isUserConfigured(bot, message.user, function(isConfigured) {
     if(isConfigured) {
       checkIsAdminByMessage(bot, message, function(isAdmin) {
         if(isAdmin) {
@@ -1635,7 +1714,7 @@ controller.hears('all gems', 'direct_message', function(bot, message) {
               // Don't use connection here, it has been returned to the pool
 
               // Getting all the usernames
-              getSlackUsersWithoutMessage(bot, function(allSlackUsers) {
+              getSlackUsers(bot, function(allSlackUsers) {
                 if(isEmptyObject(rows)) {
                   bot.reply(message, 'Nobody has received any gems yet. :sob: Try' +
                                       ' giving someone a :gem:!');
@@ -1665,14 +1744,14 @@ controller.hears('all gems', 'direct_message', function(bot, message) {
         }
       });
     }else {
-      teamConfiguredError(bot, message);
+      userConfiguredError(bot, message);
     }
   });
 });
 
-controller.hears('configure', 'direct_message', function(bot, message) {
-  configureGemificationTeam(bot, message.user);
-});
+// controller.hears('configure', 'direct_message', function(bot, message) {
+//   configureGemificationTeam(bot, message.user);
+// });
 
 // This method causes the bot to react with a cow-hat to everything Austin says
 controller.hears('', ['direct_mention', 'direct_message', 'ambient'],
