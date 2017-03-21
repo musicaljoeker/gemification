@@ -328,14 +328,14 @@ function isUserConfigured(bot, userId, callback) {
       if (err) throw err;
       if(typeof rows[0] !== 'undefined') {
         if(rows[0].isConfigured==1) {
-          // team is configured
+          // user is configured
           callback(true);
         } else {
-          // team is not configured
+          // user is not configured
           callback(false);
         }
       } else{
-        // team isn't in the table, and therefore isn't configured
+        // user isn't in the table, and therefore isn't configured
         callback(false);
       }
     });
@@ -347,10 +347,12 @@ function isTeamConfigured(bot, callback) {
     if (err) throw err;
     let teamId = bot.identifyTeam();
     connection.query(
-      'SELECT COUNT(isConfigured) as isConfigured FROM teams WHERE teamId=' + connection.escape(teamId) + ';',
+      'SELECT isConfigured as isConfigured FROM teams WHERE slackTeamId=' + connection.escape(teamId) + ';',
       function(err, rows) {
       connection.release();
       if (err) throw err;
+      let util = require('util');
+      console.log('isTeamConfigured return: ' + util.inspect(rows));
       if(typeof rows[0] !== 'undefined') {
         if(rows[0].isConfigured==1) {
           // team is configured
@@ -1027,152 +1029,163 @@ controller.hears(':gem:', 'ambient', function(bot, message) {
                       'Reason: ' + reason
                   );
 
-          // This if-statement checks for a letiety of conditions
 
-          // First, it checks to see if the reason is an empty string -- it requires
-          // a reason for storage to the database.
-          let isReasonEmpty = (reason == '');
-          // Second, it checks to see if the member the user entered to give the gem
-          // TO is a valid username in the channel.
-          let isGemReceiverInvalid =
-            !(membersInChannel.indexOf(gemReceiverId) > -1);
-          // Third, it checks if the :gem: is typed after the word 'for' meaning the
-          // user typed their statement in the wrong order.
-          let isGemInReason = (reason.indexOf(':gem:') > -1);
-          // Fourth, it checks if the user typed in the message is after 'for'
-          // meaning the user typed their statement in the wrong order.
-          let isGemReceiverInReason = (reason.indexOf(gemReceiverId) > -1);
-          // Fifth, it checks to see if a user trying to give a gem to themselves.
-          let isSelfGivingGem = (gemGiverId == gemReceiverId);
+          // Checks to see if gem receiver is configured
+          isUserConfigured(bot, gemReceiverId, function(isGemReceiverConfigured) {
+            // This if-statement checks for a letiety of conditions
+            // Checks to see if the reason is an empty string -- it requires
+            // a reason for storage to the database.
+            let isReasonEmpty = (reason == '');
+            // Checks to see if the member the user entered to give the gem
+            // TO is a valid username in the channel.
+            let isGemReceiverInvalid =
+              !(membersInChannel.indexOf(gemReceiverId) > -1);
+            // Checks if the :gem: is typed after the word 'for' meaning the
+            // user typed their statement in the wrong order.
+            let isGemInReason = (reason.indexOf(':gem:') > -1);
+            // Checks if the user typed in the message is after 'for'
+            // meaning the user typed their statement in the wrong order.
+            let isGemReceiverInReason = (reason.indexOf(gemReceiverId) > -1);
+            // Checks to see if a user trying to give a gem to themselves.
+            let isSelfGivingGem = (gemGiverId == gemReceiverId);
 
-          // If none of these condition are met, the user typed a valid gem statment
-          // and program execution can proceed. Valid gem statements are as
-          // following...
-          // :gem: [@username] for [reason] -- suggested statement syntax
-          // [@username] :gem: for [reason]
+            // If none of these condition are met, the user typed a valid gem statment
+            // and program execution can proceed. Valid gem statements are as
+            // following...
+            // :gem: [@username] for [reason] -- suggested statement syntax
+            // [@username] :gem: for [reason]
 
-          // Logging
-          console.log('***************VALIDATIONS***************' + '\n' +
-                      'Is reason undefined: ' + isReasonEmpty + '\n' +
-                      'Is gem receiver invalid: ' + isGemReceiverInvalid +
-                        '\n' +
-                      'Is gem in reason statement: ' + isGemInReason + '\n' +
-                      'Is gem receiver in reason statement: ' +
-                        isGemReceiverInReason + '\n' +
-                      'Is user giving themselves a gem: ' + isSelfGivingGem
-                  );
+            // Logging
+            console.log('***************VALIDATIONS***************' + '\n' +
+                        'Is reason undefined: ' + isReasonEmpty + '\n' +
+                        'Is gem receiver invalid: ' + isGemReceiverInvalid +
+                          '\n' +
+                        'Is gem in reason statement: ' + isGemInReason + '\n' +
+                        'Is gem receiver in reason statement: ' +
+                          isGemReceiverInReason + '\n' +
+                        'Is user giving themselves a gem: ' + isSelfGivingGem + '\n' +
+                        'Is gem receiver configured: ' + isGemReceiverConfigured
+                    );
 
 
-          if (isReasonEmpty ||
-              isGemReceiverInvalid ||
-              isGemInReason ||
-              isGemReceiverInReason) {
-            // User typed an invalid statement, output error message
-            let errorMessage = 'Sorry, ' + gemGiverEncoded + ', there was an ' +
-              'error in your gem statement because:\n';
-            if(isGemReceiverInvalid) {
-              errorMessage += '- you didn\'t type a valid gem receiver\n';
-            }
-            if(isReasonEmpty) {
-              errorMessage += '- you didn\'t include a reason statement\n';
-            }
-            if(isGemInReason) {
-              errorMessage += '- you typed gems in your reason statement\n';
-            }
-            if(isGemReceiverInReason) {
-              errorMessage += '- you don\'t type users in your reason ' +
-                                'statement\n';
-            }
-            errorMessage += 'Please type your gem statement using a valid ' +
-              'username like this:\n' +
-              ':gem: [@username] for [reason]';
-
-            // The bot private messages the gem giver and explain their error
-            bot.startPrivateConversation({user: gemGiverId},
-              function(err, convo) {
-              if (err) {
-                console.log(err);
-              } else {
-                convo.say(errorMessage);
+            if (isReasonEmpty ||
+                isGemReceiverInvalid ||
+                isGemInReason ||
+                isGemReceiverInReason ||
+                !isGemReceiverConfigured) {
+              // User typed an invalid statement, output error message
+              let errorMessage = 'Sorry, ' + gemGiverEncoded + ', there was an ' +
+                'error in your gem statement because:\n';
+              if(isGemReceiverInvalid) {
+                errorMessage += '- you didn\'t type a valid gem receiver\n';
               }
-            });
-          } else if(isSelfGivingGem) {
-            // Checks if the the someone is trying to give a gem to themselves
-            // The bot private messages the gem giver and explain their error
-            bot.startPrivateConversation({user: gemGiverId},
-              function(err, convo) {
-              if (err) {
-                console.log(err);
-              } else {
-                convo.say('Nice try, jackwagon. You can\'t give a gem to ' +
-                  'yourself. You may only give gems to other people in this ' +
-                  'channel.');
+              if(isReasonEmpty) {
+                errorMessage += '- you didn\'t include a reason statement\n';
               }
-            });
-          } else{
-            // User typed a valid statement, we have valid data, proceed with
-            // database calls
+              if(isGemInReason) {
+                errorMessage += '- you typed gems in your reason statement\n';
+              }
+              if(isGemReceiverInReason) {
+                errorMessage += '- you don\'t type users in your reason ' +
+                                  'statement\n';
+              }
+              if(!isGemReceiverConfigured) {
+                errorMessage += '- the person you are trying to give a gem' +
+                                ' to isn\'t configured with Gemification.' +
+                                ' Talk to a Gemification admin to get them' +
+                                ' configured with Gemification.\n';
+              }
+              errorMessage += 'Please type your gem statement using a valid ' +
+                'username like this:\n' +
+                ':gem: [@username] for [reason]';
 
-            // Getting the usernames for users involved in the gem statement
-            // Username of the gem giver (ex. kerkhofj)
-            let gemGiverUsername = convertIdToName(allSlackUsers, gemGiverId);
-            // Username of the gem receiver (ex. emily.albulushi)
-            let gemReceiverUsername = convertIdToName(allSlackUsers,
-                                                        gemReceiverId);
-            console.log('***************CONVERTED USERNAMES***************' +
-                        '\n' + 'Gem Giver Username: ' + gemGiverUsername +
-                        '\n' + 'Gem Receiver Username: ' + gemReceiverUsername
-                      );
+              // The bot private messages the gem giver and explain their error
+              bot.startPrivateConversation({user: gemGiverId},
+                function(err, convo) {
+                if (err) {
+                  console.log(err);
+                } else {
+                  convo.say(errorMessage);
+                }
+              });
+            } else if(isSelfGivingGem) {
+              // Checks if the the someone is trying to give a gem to themselves
+              // The bot private messages the gem giver and explain their error
+              bot.startPrivateConversation({user: gemGiverId},
+                function(err, convo) {
+                if (err) {
+                  console.log(err);
+                } else {
+                  convo.say('Nice try, jackwagon. You can\'t give a gem to ' +
+                    'yourself. You may only give gems to other people in this ' +
+                    'channel.');
+                }
+              });
+            } else{
+              // User typed a valid statement, we have valid data, proceed with
+              // database calls
 
-            // Truncating the reason statement to 250 characters to fit in the
-            // database
-            reason = reason.substring(0, 250);
-            let teamId = bot.identifyTeam(); // Getting the team ID
-            // Getting the database pool
-            DBPool.getConnection(function(err, connection) {
-              if (err) throw err;
-              let giveGemQuery = 'CALL incrementGems(' +
-              connection.escape(gemGiverId) + ', ' +
-              connection.escape(gemReceiverId) + ', ' +
-              connection.escape(teamId) + ', ' +
-              connection.escape(reason) + ');';
+              // Getting the usernames for users involved in the gem statement
+              // Username of the gem giver (ex. kerkhofj)
+              let gemGiverUsername = convertIdToName(allSlackUsers, gemGiverId);
+              // Username of the gem receiver (ex. emily.albulushi)
+              let gemReceiverUsername = convertIdToName(allSlackUsers,
+                                                          gemReceiverId);
+              console.log('***************CONVERTED USERNAMES***************' +
+                          '\n' + 'Gem Giver Username: ' + gemGiverUsername +
+                          '\n' + 'Gem Receiver Username: ' + gemReceiverUsername
+                        );
 
-              connection.query(
-                giveGemQuery,
-                function(err, rows) {
+              // Truncating the reason statement to 250 characters to fit in the
+              // database
+              reason = reason.substring(0, 250);
+              let teamId = bot.identifyTeam(); // Getting the team ID
+              // Getting the database pool
+              DBPool.getConnection(function(err, connection) {
                 if (err) throw err;
-                // Done with connection
-                connection.release();
-                // Don't use connection here, it has been returned to the pool
+                let giveGemQuery = 'CALL incrementGems(' +
+                connection.escape(gemGiverId) + ', ' +
+                connection.escape(gemReceiverId) + ', ' +
+                connection.escape(teamId) + ', ' +
+                connection.escape(reason) + ');';
 
-                // The bot private messages the gem giver and says their gem
-                // transaction was successful
-                bot.startPrivateConversation({user: gemGiverId},
-                  function(err, convo) {
-                  if (err) {
-                    console.log(err);
-                  } else {
-                    convo.say(gemGiverUsername + ', you gave a gem to ' +
-                      gemReceiverUsername + '!');
-                  }
-                });
+                connection.query(
+                  giveGemQuery,
+                  function(err, rows) {
+                  if (err) throw err;
+                  // Done with connection
+                  connection.release();
+                  // Don't use connection here, it has been returned to the pool
 
-                // The bot private messages the gem receiver and says their gem
-                // transaction was successful
-                bot.startPrivateConversation({user: gemReceiverId},
-                  function(err, convo) {
-                  if (err) {
-                    console.log(err);
-                  } else {
-                    convo.say('You have received a gem from ' +
-                      gemGiverUsername + '!');
-                  }
+                  // The bot private messages the gem giver and says their gem
+                  // transaction was successful
+                  bot.startPrivateConversation({user: gemGiverId},
+                    function(err, convo) {
+                    if (err) {
+                      console.log(err);
+                    } else {
+                      convo.say(gemGiverUsername + ', you gave a gem to ' +
+                        gemReceiverUsername + '!');
+                    }
+                  });
+
+                  // The bot private messages the gem receiver and says their gem
+                  // transaction was successful
+                  bot.startPrivateConversation({user: gemReceiverId},
+                    function(err, convo) {
+                    if (err) {
+                      console.log(err);
+                    } else {
+                      convo.say('You have received a gem from ' +
+                        gemGiverUsername + '!');
+                    }
+                  });
                 });
               });
-            });
-          }
-          // Logging
-          console.log('***************END DEBUGGING***************');
+            }
+            // Logging
+            console.log('***************END DEBUGGING***************');
+          });
         });
       });
     }else {
@@ -1700,43 +1713,51 @@ controller.hears('all gems', 'direct_message', function(bot, message) {
     if(isConfigured) {
       checkIsAdminByMessage(bot, message, function(isAdmin) {
         if(isAdmin) {
-          // Getting the database pool
-          DBPool.getConnection(function(err, connection) {
-            if (err) throw err;
-            let teamId = bot.identifyTeam(); // Gets the ID of the team
-            connection.query(
-              'SELECT userId, totalGems FROM userGem WHERE totalGems > 0 AND ' +
-                'teamId = \'' + teamId + '\' ORDER BY totalGems DESC',
-              function(err, rows) {
-              if (err) throw err;
-              // Done with connection
-              connection.release();
-              // Don't use connection here, it has been returned to the pool
+          getTeamGroups(bot, function(groups) {
+            for(let i=0; i<groups.length; i++) {
+              let groupName = groups[i].groupName;
+              // Getting the database pool
+              DBPool.getConnection(function(err, connection) {
+                if (err) throw err;
+                let teamId = bot.identifyTeam(); // Gets the ID of the team
+                let query = 'SELECT userId, totalGems FROM userGem WHERE ' +
+                              'teamId=(SELECT id FROM teams WHERE slackTeamId=' + connection.escape(teamId) + ') ' +
+                              'AND groupId=(SELECT id FROM teamConfiguration WHERE groupName=' + connection.escape(groupName) + ') ' +
+                              'AND totalGems > 0 ORDER BY totalGems DESC';
+                connection.query(
+                  query,
+                  function(err, rows) {
+                  if (err) throw err;
+                  // Done with connection
+                  connection.release();
+                  // Don't use connection here, it has been returned to the pool
 
-              // Getting all the usernames
-              getSlackUsers(bot, function(allSlackUsers) {
-                if(isEmptyObject(rows)) {
-                  bot.reply(message, 'Nobody has received any gems yet. :sob: Try' +
-                                      ' giving someone a :gem:!');
-                } else{
-                  // Parsing the leaderboard, looping thru everybody returned in the
-                  // query
-                  let leaderboardStr = 'All Gems:\n';
-                  for(let i=0; i<rows.length; i++) {
-                    if(i==rows.length-1) {
-                      leaderboardStr += (i+1) + '.) ' +
-                      convertIdToName(allSlackUsers, rows[i].userId) + ' ' +
-                      rows[i].totalGems;
+                  // Getting all the usernames
+                  getSlackUsers(bot, function(allSlackUsers) {
+                    if(isEmptyObject(rows)) {
+                      bot.reply(message, 'Nobody has received any gems yet. :sob: Try' +
+                                          ' giving someone a :gem:!');
                     } else{
-                      leaderboardStr += (i+1) + '.) ' +
-                      convertIdToName(allSlackUsers, rows[i].userId) + ' ' +
-                      rows[i].totalGems + '\n';
+                      // Parsing the leaderboard, looping thru everybody returned in the
+                      // query
+                      let leaderboardStr = groupName + ' All Gems Leaderboard:\n';
+                      for(let i=0; i<rows.length; i++) {
+                        if(i==rows.length-1) {
+                          leaderboardStr += (i+1) + '.) ' +
+                          convertIdToName(allSlackUsers, rows[i].userId) + ' ' +
+                          rows[i].totalGems;
+                        } else{
+                          leaderboardStr += (i+1) + '.) ' +
+                          convertIdToName(allSlackUsers, rows[i].userId) + ' ' +
+                          rows[i].totalGems + '\n';
+                        }
+                      }
+                      bot.reply(message, leaderboardStr);
                     }
-                  }
-                  bot.reply(message, leaderboardStr);
-                }
+                  });
+                });
               });
-            });
+            }
           });
         } else{
           bot.reply(message, 'Nice try, wise guy, but you aren\'t an admin. Only' +
@@ -1748,10 +1769,6 @@ controller.hears('all gems', 'direct_message', function(bot, message) {
     }
   });
 });
-
-// controller.hears('configure', 'direct_message', function(bot, message) {
-//   configureGemificationTeam(bot, message.user);
-// });
 
 // This method causes the bot to react with a cow-hat to everything Austin says
 controller.hears('', ['direct_mention', 'direct_message', 'ambient'],
