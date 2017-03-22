@@ -769,7 +769,7 @@ controller.on('interactive_message_callback', function(bot, message) {
               console.log(err);
             } else {
               newAdminNotification.say('Hey there, good looking. :wink:' +
-                'You have been set as an admin.');
+                ' You have been set as an admin.');
             }
           });
         });
@@ -781,36 +781,36 @@ controller.on('interactive_message_callback', function(bot, message) {
   }
 
   // New user will be inserted as an admin into the table
-  if(message.callback_id=='2') {
-    // Array for this function will be array[answer, newAdminId, newAdmin]
-    let answer = array[0];
-    let newAdminId = array[1];
-    let newAdmin = array[2];
-
-    // unsanitizing the strings
-    newAdmin = newAdmin.replace('&lt;', '<').replace('&gt;', '>');
-
-    if(answer=='yes') {
-      DBPool.getConnection(function(err, connection) {
-        let teamId = bot.identifyTeam(); // Gets the team ID
-        if (err) throw err;
-        connection.query(
-          'INSERT INTO userGem (userId, teamId, isAdmin) VALUES (' +
-            connection.escape(newAdminId) + ', ' +
-            connection.escape(teamId) + ', TRUE)',
-          function(err, rows) {
-          connection.release();
-          if (err) throw err;
-          // Convo end point
-          console.log('info: Setting ' + newAdmin + ' as an admin.');
-          bot.replyInteractive(message, newAdmin + ' is now set as an admin.');
-        });
-      });
-    }
-    if(answer=='no') {
-      bot.replyInteractive(message, newAdmin + ' will not be set as an admin.');
-    }
-  }
+  // if(message.callback_id=='2') {
+  //   // Array for this function will be array[answer, newAdminId, newAdmin]
+  //   let answer = array[0];
+  //   let newAdminId = array[1];
+  //   let newAdmin = array[2];
+  //
+  //   // unsanitizing the strings
+  //   newAdmin = newAdmin.replace('&lt;', '<').replace('&gt;', '>');
+  //
+  //   if(answer=='yes') {
+  //     DBPool.getConnection(function(err, connection) {
+  //       let teamId = bot.identifyTeam(); // Gets the team ID
+  //       if (err) throw err;
+  //       connection.query(
+  //         'INSERT INTO userGem (userId, teamId, isAdmin) VALUES (' +
+  //           connection.escape(newAdminId) + ', ' +
+  //           connection.escape(teamId) + ', TRUE)',
+  //         function(err, rows) {
+  //         connection.release();
+  //         if (err) throw err;
+  //         // Convo end point
+  //         console.log('info: Setting ' + newAdmin + ' as an admin.');
+  //         bot.replyInteractive(message, newAdmin + ' is now set as an admin.');
+  //       });
+  //     });
+  //   }
+  //   if(answer=='no') {
+  //     bot.replyInteractive(message, newAdmin + ' will not be set as an admin.');
+  //   }
+  // }
 
   // User will be removed as an admin from the database
   if(message.callback_id=='3') {
@@ -1245,11 +1245,11 @@ controller.hears('leaderboard', ['direct_mention', 'direct_message'],
                     let numOfLoops = (rows.length > 10) ? 10 : rows.length;
                     for(let i=0; i<numOfLoops; i++) {
                       if(i == (numOfLoops-1)) {
-                        leaderboardStr += (i+1) + '.) ' +
+                        leaderboardStr += '>' + (i+1) + '.) ' +
                           convertIdToName(allSlackUsers, rows[i].userId) + ' ' +
                           rows[i].currentGems;
                       } else{
-                        leaderboardStr += (i+1) + '.) ' +
+                        leaderboardStr += '>' + (i+1) + '.) ' +
                           convertIdToName(allSlackUsers, rows[i].userId) + ' ' +
                           rows[i].currentGems + '\n';
                       }
@@ -1349,113 +1349,128 @@ controller.hears('add admin', 'direct_message', function(bot, message) {
                       checkIfUserExists(newAdminId, function(userExists) {
                         if (userExists) {
                           // The user is in the database
-                          // Validating that the user is not already set to be an
-                          // admin...
-                          checkIsAdminById(newAdminId, function(isAlreadyAdmin) {
-                            if (isAlreadyAdmin) {
-                              // The user that was entered is already an admin
-                              // Convo end point
-                              convo.say(newAdmin + ' is already an admin user in ' +
-                                'gemification.');
-                              convo.next();
-                            } else{
-                              let newAdminName = convertIdToName(allSlackUsers,
-                                                                  newAdminId);
-                              // The user that was entered is not an admin, and
-                              // should be set as an admin
-                              convo.next();
-                              // Validate the what is about to happen with the user
-                              // Array for this function is
-                              // array[answer, newAdminId, newAdmin]
-                              let answerYes = ['yes', newAdminId, newAdmin];
-                              let answerYesJSON = JSON.stringify(answerYes);
-                              let answerNo = ['no', newAdminId, newAdmin];
-                              let answerNoJSON = JSON.stringify(answerNo);
-                              bot.reply(message, {
-                                attachments: [
-                                  {
-                                    title: 'Are you sure you want to set ' +
-                                      newAdmin + ' as an admin?',
-                                    // Set admin and user is in the database
-                                    callback_id: '1',
-                                    attachment_type: 'default',
-                                    actions: [
+                          // Checks if the user you are trying to set as an admin
+                          // is configured in the database.
+                          isUserConfigured(bot, newAdminId, function(isNewAdminConfigured) {
+                            if(isNewAdminConfigured) {
+                              // Validating that the user is not already set to be an
+                              // admin...
+                              checkIsAdminById(newAdminId, function(isAlreadyAdmin) {
+                                if (isAlreadyAdmin) {
+                                  // The user that was entered is already an admin
+                                  // Convo end point
+                                  convo.say(newAdmin + ' is already an admin user in ' +
+                                    'gemification.');
+                                  convo.next();
+                                } else{
+                                  let newAdminName = convertIdToName(allSlackUsers,
+                                                                      newAdminId);
+                                  // The user that was entered is not an admin, and
+                                  // should be set as an admin
+                                  convo.next();
+                                  // Validate the what is about to happen with the user
+                                  // Array for this function is
+                                  // array[answer, newAdminId, newAdmin]
+                                  let answerYes = ['yes', newAdminId, newAdmin];
+                                  let answerYesJSON = JSON.stringify(answerYes);
+                                  let answerNo = ['no', newAdminId, newAdmin];
+                                  let answerNoJSON = JSON.stringify(answerNo);
+                                  bot.reply(message, {
+                                    attachments: [
                                       {
-                                        'name': 'yes',
-                                        'text': 'Yes',
-                                        'value': answerYesJSON,
-                                        'type': 'button',
-                                        'confirm': {
-                                          'title': 'Are you sure?',
-                                          'text': 'This will add ' + newAdminName +
-                                                    ' as an administrator!',
-                                          'ok_text': 'Yes',
-                                          'dismiss_text': 'No',
-                                        },
-                                      },
-                                      {
-                                        'name': 'no',
-                                        'text': 'No',
-                                        'value': answerNoJSON,
-                                        'type': 'button',
+                                        title: 'Are you sure you want to set ' +
+                                          newAdmin + ' as an admin?',
+                                        // Set admin and user is in the database
+                                        callback_id: '1',
+                                        attachment_type: 'default',
+                                        actions: [
+                                          {
+                                            'name': 'yes',
+                                            'text': 'Yes',
+                                            'value': answerYesJSON,
+                                            'type': 'button',
+                                            'confirm': {
+                                              'title': 'Are you sure?',
+                                              'text': 'This will add ' + newAdminName +
+                                                        ' as an administrator!',
+                                              'ok_text': 'Yes',
+                                              'dismiss_text': 'No',
+                                            },
+                                          },
+                                          {
+                                            'name': 'no',
+                                            'text': 'No',
+                                            'value': answerNoJSON,
+                                            'type': 'button',
+                                          },
+                                        ],
                                       },
                                     ],
-                                  },
-                                ],
-                             });
+                                 });
+                                }
+                              });
+                            }else {
+                              convo.say('The user you are trying to set as an' +
+                                        ' admin is not configured with' +
+                                        ' Gemification. If you believe this' +
+                                        ' is an error, speak to a Gemification' +
+                                        ' admin and have them configure the' +
+                                        ' user you are trying to set as an' +
+                                        ' admin.');
                             }
                           });
-                        } else{
-                          // The user is not in the database
-
-                          // Now that we know the username entered is valid, and the
-                          // user isn't in the database, we should get the
-                          // username on the account from the id.
-
-                          let newAdminName = convertIdToName(allSlackUsers,
-                                                              newAdminId);
-
-                          convo.next();
-                          // Validate the what is about to happen with the user
-                          // Array for this function is
-                          // array[answer, newAdminId, newAdmin]
-                          let answerYes = ['yes', newAdminId, newAdmin];
-                          let answerYesJSON = JSON.stringify(answerYes);
-                          let answerNo = ['no', newAdminId, newAdmin];
-                          let answerNoJSON = JSON.stringify(answerNo);
-                          bot.reply(message, {
-                            attachments: [
-                              {
-                                title: 'Are you sure you want to set ' +
-                                  newAdmin + ' as an admin?',
-                                // Insert user into database and set as admin
-                                callback_id: '2',
-                                attachment_type: 'default',
-                                actions: [
-                                  {
-                                    'name': 'yes',
-                                    'text': 'Yes',
-                                    'value': answerYesJSON,
-                                    'type': 'button',
-                                    'confirm': {
-                                      'title': 'Are you sure?',
-                                      'text': 'This will add ' + newAdminName +
-                                                ' as an administrator!',
-                                      'ok_text': 'Yes',
-                                      'dismiss_text': 'No',
-                                    },
-                                  },
-                                  {
-                                    'name': 'no',
-                                    'text': 'No',
-                                    'value': answerNoJSON,
-                                    'type': 'button',
-                                  },
-                                ],
-                              },
-                            ],
-                         });
                         }
+                        // else{
+                        //   // The user is not in the database
+                        //
+                        //   // Now that we know the username entered is valid, and the
+                        //   // user isn't in the database, we should get the
+                        //   // username on the account from the id.
+                        //
+                        //   let newAdminName = convertIdToName(allSlackUsers,
+                        //                                       newAdminId);
+                        //
+                        //   convo.next();
+                        //   // Validate the what is about to happen with the user
+                        //   // Array for this function is
+                        //   // array[answer, newAdminId, newAdmin]
+                        //   let answerYes = ['yes', newAdminId, newAdmin];
+                        //   let answerYesJSON = JSON.stringify(answerYes);
+                        //   let answerNo = ['no', newAdminId, newAdmin];
+                        //   let answerNoJSON = JSON.stringify(answerNo);
+                        //   bot.reply(message, {
+                        //     attachments: [
+                        //       {
+                        //         title: 'Are you sure you want to set ' +
+                        //           newAdmin + ' as an admin?',
+                        //         // Insert user into database and set as admin
+                        //         callback_id: '2',
+                        //         attachment_type: 'default',
+                        //         actions: [
+                        //           {
+                        //             'name': 'yes',
+                        //             'text': 'Yes',
+                        //             'value': answerYesJSON,
+                        //             'type': 'button',
+                        //             'confirm': {
+                        //               'title': 'Are you sure?',
+                        //               'text': 'This will add ' + newAdminName +
+                        //                         ' as an administrator!',
+                        //               'ok_text': 'Yes',
+                        //               'dismiss_text': 'No',
+                        //             },
+                        //           },
+                        //           {
+                        //             'name': 'no',
+                        //             'text': 'No',
+                        //             'value': answerNoJSON,
+                        //             'type': 'button',
+                        //           },
+                        //         ],
+                        //       },
+                        //     ],
+                        //  });
+                        // }
                       });
                     }
                  });
@@ -1635,6 +1650,75 @@ controller.hears('remove admin', 'direct_message', function(bot, message) {
   });
 });
 
+// This function queries the database for the leader of each group in
+// Gemification, returns, and prints out the reasons they were given gems
+controller.hears('get reasons', 'direct_message', function(bot, message) {
+  isUserConfigured(bot, message.user, function(isConfigured) {
+    if(isConfigured) {
+      checkIsAdminByMessage(bot, message, function(isAdmin) {
+        if(isAdmin) {
+          getTeamGroups(bot, function(groups) {
+            for(let i=0; i<groups.length; i++) {
+              let groupName = groups[i].groupName;
+              // Getting the database pool
+              DBPool.getConnection(function(err, connection) {
+                if (err) throw err;
+                let teamId = bot.identifyTeam(); // Gets the ID of the team
+                let query = 'SELECT userId, reason FROM gemTransactions ' +
+                                'INNER JOIN gemPeriod ' +
+                                'ON timestamp>resetTime ' +
+                                'INNER JOIN userGem ' +
+                                'ON gemReceiver=userGem.id ' +
+                                  'WHERE gemReceiver=(' +
+                                    'SELECT id FROM userGem ' +
+                                    'WHERE groupId=(SELECT id FROM teamConfiguration WHERE groupName=' + connection.escape(groupName) + ') ' +
+                                    'AND teamId=(SELECT id FROM teams WHERE slackTeamId=' + connection.escape(teamId) +') ' +
+                                    'ORDER BY currentGems DESC ' +
+                                    'LIMIT 1);';
+                connection.query(
+                  query,
+                  function(err, rows) {
+                  if (err) throw err;
+                  // Done with connection
+                  connection.release();
+                  if(isEmptyObject(rows)) {
+                    bot.reply(message, 'The ' + groupName + ' leaderboard is empty. Try giving someone ' +
+                      'a :gem:!');
+                  } else{
+                    // Getting all the usernames
+                    getSlackUsers(bot, function(allSlackUsers) {
+                      let leaderName = convertIdToName(allSlackUsers, rows[0].userId);
+                      let reasons = 'The gem leader for ' + groupName + ' is ' + leaderName + '\n' +
+                                    'Below are their Gem reasons.\n';
+                      for(let i=0; i<rows.length; i++) {
+                        if(i == (rows.length-1)) {
+                          reasons += '>' + (i+1) + '.) ' +
+                            rows[i].reason;
+                        }else {
+                          reasons += '>' + (i+1) + '.) ' +
+                             rows[i].reason + '\n';
+                        }
+                      }
+                      bot.reply(message, reasons);
+                    });
+                  }
+                });
+              });
+            }
+          });
+        }else {
+          // The user who typed the message isn't an admin
+          bot.reply(message, 'Nice try, wise guy, but you aren\'t an admin.' +
+                              ' Only admins can get the reasons for' +
+                              ' Gemification leaders. :angry:');
+        }
+      });
+    }else {
+      userConfiguredError(bot, message);
+    }
+  });
+});
+
 // This function gives a bit of documentation help to the user
 // It listens for a direct message or direct me
 controller.hears('help', ['direct_mention', 'direct_message', 'ambient'],
@@ -1648,26 +1732,29 @@ controller.hears('help', ['direct_mention', 'direct_message', 'ambient'],
 
             let publicCommands = '*Public commands*\n';
             publicCommands += '1) How to give someone a gem :gem:\n';
-            publicCommands += 'Type \':gem: [@username] for [reason]\'\n\n';
+            publicCommands += 'Type `:gem: [@username] for [reason]`\n\n';
             publicCommands += '2) How to show the leaderboard\n';
-            publicCommands += 'In a direct message, type \'leaderboard\'\n';
-            publicCommands += 'In a channel, type \'@gemification leaderboard\'\n\n';
+            publicCommands += 'In a direct message to Gemification, type `leaderboard`\n';
+            publicCommands += 'In a channel, type `@gemification leaderboard`\n\n';
 
             let adminCommands = '*Admin commands (these can only be run if you\'re' +
                 ' an admin)*\n';
             adminCommands += '1) How to clear the gem leaderboard\n';
-            adminCommands += 'In a direct message, type \'clear gems\'\n\n';
+            adminCommands += 'In a direct message to Gemification, type `clear gems`\n\n';
             adminCommands += '2) How to list the current admins in Gemification\n';
-            adminCommands += 'In a direct message, type \'list admins\'\n\n';
+            adminCommands += 'In a direct message to Gemification, type `list admins`\n\n';
             adminCommands += '3) How to add an admin to Gemification\n';
-            adminCommands += 'In a direct message, type \'add admin\' and follow' +
+            adminCommands += 'In a direct message to Gemification, type `add admin` and follow' +
                 ' the prompts\n\n';
             adminCommands += '4) How to remove an admin from Gemification\n';
-            adminCommands += 'In a direct message, type \'remove admin\' and follow' +
+            adminCommands += 'In a direct message to Gemification, type `remove admin` and follow' +
                 ' the prompts\n\n';
             adminCommands += '5) Get a full list of gems given in the current' +
                 ' time period.\n';
-            adminCommands += 'In a direct message, type \'all gems\'';
+            adminCommands += 'In a direct message to Gemification, type `all gems`\n\n';
+            adminCommands += '6) Print a list of gem statement reasons for' +
+                              ' the gem leader in each group.\n';
+            adminCommands += 'In a direct message to Gemification, type `get reasons`'
 
             helpStr += publicCommands + adminCommands;
             bot.reply(message, helpStr);
@@ -1677,10 +1764,10 @@ controller.hears('help', ['direct_mention', 'direct_message', 'ambient'],
                 'Gemification:\n\n';
 
             let publicCommands = '1) How to give someone a gem :gem:\n';
-            publicCommands += 'Type \':gem: [@username] for [reason]\'\n\n';
+            publicCommands += 'Type `:gem: [@username] for [reason]`\n\n';
             publicCommands += '2) How to show the leaderboard\n';
-            publicCommands += 'In a direct message, type \'leaderboard\'\n';
-            publicCommands += 'In a channel, type \'@gemification leaderboard\'\n\n';
+            publicCommands += 'In a direct message to Gemification, type `leaderboard`\n';
+            publicCommands += 'In a channel, type `@gemification leaderboard`\n\n';
 
             helpStr += publicCommands;
             bot.reply(message, helpStr);
@@ -1743,11 +1830,11 @@ controller.hears('all gems', 'direct_message', function(bot, message) {
                       let leaderboardStr = groupName + ' All Gems Leaderboard:\n';
                       for(let i=0; i<rows.length; i++) {
                         if(i==rows.length-1) {
-                          leaderboardStr += (i+1) + '.) ' +
+                          leaderboardStr += '>' + (i+1) + '.) ' +
                           convertIdToName(allSlackUsers, rows[i].userId) + ' ' +
                           rows[i].totalGems;
                         } else{
-                          leaderboardStr += (i+1) + '.) ' +
+                          leaderboardStr += '>' + (i+1) + '.) ' +
                           convertIdToName(allSlackUsers, rows[i].userId) + ' ' +
                           rows[i].totalGems + '\n';
                         }
