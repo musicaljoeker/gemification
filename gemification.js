@@ -1719,6 +1719,74 @@ controller.hears('get reasons', 'direct_message', function(bot, message) {
   });
 });
 
+// This function displays the current Gemification configuration set for your
+// team.
+controller.hears('team configuration', 'direct_message', function(bot, message) {
+  isUserConfigured(bot, message.user, function(isConfigured) {
+    if(isConfigured) {
+      checkIsAdminByMessage(bot, message, function(isAdmin) {
+        if(isAdmin) {
+          getTeamGroups(bot, function(groups) {
+            let configurationStr = 'Below is the current Gemification configuration for your team.\n';
+            configurationStr += 'Your team has ' + groups.length + ' groups. They are:\n';
+            // printing the configured groups
+            for(let i=0; i<groups.length; i++) {
+              let groupName = groups[i].groupName;
+              if(i == (groups.length-1)) {
+                configurationStr += '>' + (i+1) + '.) ' +
+                  groupName;
+              }else {
+                configurationStr += '>' + (i+1) + '.) ' +
+                   groupName + '\n';
+              }
+            }
+            // printing the users assigned to the groups
+            for(let i=0; i<groups.length; i++) {
+              let groupName = groups[i].groupName;
+              // Getting the database pool
+              DBPool.getConnection(function(err, connection) {
+                if (err) throw err;
+                let query = 'SELECT userId ' +
+                              'FROM userGem ' +
+                              'WHERE groupId=' +
+                              '(SELECT id FROM teamConfiguration' +
+                              ' WHERE groupName=' + connection.escape(groupName) + ');';
+                connection.query(
+                  query,
+                  function(err, rows) {
+                  if (err) throw err;
+                  // Done with connection
+                  connection.release();
+                  configurationStr += '\n\nUsers in ' + groupName + ' group:\n';
+                  for(let j=0; j<rows.length; j++) {
+                    let user = '<@' + rows[j].userId + '>';
+                    if(j == (rows.length-1)) {
+                      configurationStr += '>' + user;
+                    }else {
+                      configurationStr += '>' + user + '\n';
+                    }
+                  }
+                  // if is the last element, have the bot reply
+                  if(i==groups.length-1) {
+                    bot.reply(message, configurationStr);
+                  }
+                });
+              });
+            }
+          });
+        }else {
+          // The user who typed the message isn't an admin
+          bot.reply(message, 'Nice try, wise guy, but you aren\'t an admin.' +
+                              ' Only admins can get the reasons for' +
+                              ' Gemification leaders. :angry:');
+        }
+      });
+    }else {
+      userConfiguredError(bot, message);
+    }
+  });
+});
+
 // This function gives a bit of documentation help to the user
 // It listens for a direct message or direct me
 controller.hears('help', ['direct_mention', 'direct_message', 'ambient'],
