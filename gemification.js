@@ -90,7 +90,6 @@ function isEmptyObject(obj) {
 /**
  * Gets all users in the Slack channel and runs the callback function
  * @param {JSON} bot The bot.
- * @param {JSON} message The message.
  * @param {function} callback The function that is executed after the Slack API
  *                             is called.
  */
@@ -317,12 +316,19 @@ function checkIsLastAdmin(removeAdminId, callback) {
   });
 }
 
+/**
+ * This function takes in a bot, a userId and a callback function. It performs a
+ * SQL query and passes the a boolean value back thru the callback.
+ * @param {JSON} bot The bot.
+ * @param {string} userId A string of a userId from the Slack API
+ * @param {function} callback The function that will be executed after the query
+ */
 function isUserConfigured(bot, userId, callback) {
   DBPool.getConnection(function(err, connection) {
     if (err) throw err;
-    let teamId = bot.identifyTeam();
     connection.query(
-      'SELECT COUNT(groupId) as isConfigured FROM userGem WHERE userId=' + connection.escape(userId) + ';',
+      'SELECT COUNT(groupId) as isConfigured FROM userGem WHERE userId=' +
+        connection.escape(userId) + ';',
       function(err, rows) {
       connection.release();
       if (err) throw err;
@@ -342,12 +348,20 @@ function isUserConfigured(bot, userId, callback) {
   });
 }
 
+/**
+ * Performs a SQL query to find out if the team is configured and passes that
+ * boolean value thru to the callback function.
+ * @param {JSON} bot The bot.
+ * @param {function} callback The function that is executed after the Slack API
+ *                             is called.
+ */
 function isTeamConfigured(bot, callback) {
   DBPool.getConnection(function(err, connection) {
     if (err) throw err;
     let teamId = bot.identifyTeam();
     connection.query(
-      'SELECT isConfigured as isConfigured FROM teams WHERE slackTeamId=' + connection.escape(teamId) + ';',
+      'SELECT isConfigured as isConfigured FROM teams WHERE slackTeamId=' +
+        connection.escape(teamId) + ';',
       function(err, rows) {
       connection.release();
       if (err) throw err;
@@ -369,6 +383,12 @@ function isTeamConfigured(bot, callback) {
   });
 }
 
+/**
+ * Prints a error message for an unconfigured user who is trying to operate
+ * Gemification.
+ * @param {JSON} bot The bot.
+ * @param {JSON} message The message.
+ */
 function userConfiguredError(bot, message) {
   bot.startPrivateConversation({user: message.user},
     function(err, convo) {
@@ -381,10 +401,22 @@ function userConfiguredError(bot, message) {
   });
 }
 
+/**
+ * Prints a error message for an unconfigured user who is trying to operate
+ * Gemification.
+ * @param {string} string string which will have the first letter capitalized
+ * @return {string} The string which has the first letter capitalized.
+ */
 function capitalizeFirstLetter(string) {
     return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
+/**
+ * Takes the user who installed Gemification thru the steps to configure the
+ * team.
+ * @param {JSON} bot The bot.
+ * @param {string} createdBy User who installed Gemification.
+ */
 function configureGemificationTeam(bot, createdBy) {
   isTeamConfigured(bot, function(isConfigured) {
     if(isConfigured) {
@@ -510,6 +542,13 @@ function configureGemificationTeam(bot, createdBy) {
   });
 }
 
+/**
+ * Performs a SQL query to get Gemification groups and runs the callback
+ * function.
+ * @param {JSON} bot The bot.
+ * @param {function} callback The callback function which has the groups
+ *                            passed into it.
+ */
 function getTeamGroups(bot, callback) {
   let teamId = bot.identifyTeam();
   DBPool.getConnection(function(err, connection) {
@@ -529,6 +568,12 @@ function getTeamGroups(bot, callback) {
   });
 }
 
+/**
+ * Takes the user who installed Gemification thru the steps to configure all
+ * the users on their team.
+ * @param {JSON} bot The bot.
+ * @param {string} createdBy A string of who installed Gemification.
+ */
 function configureGemificationUsers(bot, createdBy) {
   getSlackUsers(bot, function(users) {
     getTeamGroups(bot, function(groups) {
@@ -537,6 +582,16 @@ function configureGemificationUsers(bot, createdBy) {
   });
 }
 
+/**
+ * Takes the user who installed Gemification thru the steps to configure a
+ * specific user in their team.
+ * @param {JSON} bot The bot.
+ * @param {string} createdBy A string of who installed Gemification.
+ * @param {JSON} users An JSON object containing all the users in the Slack team
+ * @param {array} groups An array of Gemeifcation groups for the team
+ * @param {int} userSelector A counter telling recurssion where to look for
+ *                            which user is currently being configured.
+ */
 function configurePerson(bot, createdBy, users, groups, userSelector) {
   bot.startPrivateConversation({user: createdBy}, function(err, convo) {
     if (err) {
@@ -545,7 +600,8 @@ function configurePerson(bot, createdBy, users, groups, userSelector) {
       let isBot = users[userSelector].is_bot;
       if(isBot) {
         // user is a bot and should be skipped
-        console.log('info: User ' + users[userSelector].name + ' is a bot and is being skipped.');
+        console.log('info: User ' + users[userSelector].name +
+                    ' is a bot and is being skipped.');
         if(userSelector != users.length-1) {
           // if user isn't the last user in the list
           configurePerson(bot, createdBy, users, groups, userSelector + 1);
@@ -565,7 +621,11 @@ function configurePerson(bot, createdBy, users, groups, userSelector) {
         let buttons = [];
         // assigning the groups to buttons
         for(let i=0; i<groups.length; i++) {
-          let answer = [groups[i].groupName, userId, createdBy, userSelector, groups];
+          let answer = [groups[i].groupName,
+                        userId,
+                        createdBy,
+                        userSelector,
+                        groups];
           let answerJSON = JSON.stringify(answer);
           let button = {
             'name': groups[i].groupName,
@@ -582,7 +642,7 @@ function configurePerson(bot, createdBy, users, groups, userSelector) {
           'name': 'ignore',
           'text': 'Ignore',
           'value': ignoreAnswerJSON,
-          'type': 'button'
+          'type': 'button',
         });
         convo.ask({
           text: 'Let\'s assign ' + userName + ' to a group.',
@@ -601,6 +661,12 @@ function configurePerson(bot, createdBy, users, groups, userSelector) {
   });
 }
 
+/**
+ * Prints a generic success statement to the user who finished configuring
+ * Gemification.
+ * @param {JSON} bot The bot.
+ * @param {JSON} message The message for the bot to repond to.
+ */
 function finishTeamConfiguration(bot, message) {
   let teamId = bot.identifyTeam();
   DBPool.getConnection(function(err, connection) {
@@ -613,8 +679,11 @@ function finishTeamConfiguration(bot, message) {
       if (err) throw err;
       // Convo end point
       console.log('info: Configuration for team ' + teamId + ' is finished.');
-      bot.reply(message, 'Nice job! You have successfully configured your Slack team to work with Gemification. :tada:');
-      bot.reply(message, 'The last step is to /invite me to the channel you\'ll be using for Gemification. Without that, I won\'t be able to do anything.');
+      bot.reply(message, 'Nice job! You have successfully configured your' +
+                          ' Slack team to work with Gemification. :tada:');
+      bot.reply(message, 'The last step is to /invite me to the channel' +
+                          ' you\'ll be using for Gemification. Without that,' +
+                          ' I won\'t be able to do anything.');
     });
   });
 }
@@ -996,7 +1065,7 @@ controller.hears(':gem:', 'ambient', function(bot, message) {
       getMembersInChannel(bot, message, function(membersInChannel) {
         getSlackUsers(bot, function(allSlackUsers) {
           // Logging
-          console.log('***************BEGIN DEBUGGING***************');
+          console.log('***************BEGIN GEM TRANSACTION***************');
           // Everything the user typed in the message
           let messageText = message.text;
           // Raw userId of the gem giver (ex. UW392NNSK)
@@ -1184,7 +1253,7 @@ controller.hears(':gem:', 'ambient', function(bot, message) {
               });
             }
             // Logging
-            console.log('***************END DEBUGGING***************');
+            console.log('***************END GEM TRANSACTION***************');
           });
         });
       });
