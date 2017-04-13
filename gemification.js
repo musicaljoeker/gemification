@@ -381,8 +381,6 @@ function isTeamConfigured(bot, callback) {
       function(err, rows) {
       connection.release();
       if (err) throw err;
-      let util = require('util');
-      console.log('isTeamConfigured return: ' + util.inspect(rows));
       if(typeof rows[0] !== 'undefined') {
         if(rows[0].isConfigured==1) {
           // team is configured
@@ -830,7 +828,8 @@ controller.on('interactive_message_callback', function(bot, message) {
       message.callback_id=='3' ||
       message.callback_id=='4' ||
       message.callback_id=='5' ||
-      message.callback_id=='6') {
+      message.callback_id=='6' ||
+      message.callback_id=='7') {
     try {
       array = JSON.parse(message.actions[0].value);
     } catch (ex) {
@@ -1002,6 +1001,7 @@ controller.on('interactive_message_callback', function(bot, message) {
     }
   }
 
+  // Adding a new user to the database and setting a group for the user for init
   if(message.callback_id=='5') {
     console.log('* CALLBACK: Begin Callback ID 5');
     getAllSlackUsers(bot, function(users) {
@@ -1086,6 +1086,7 @@ controller.on('interactive_message_callback', function(bot, message) {
     });
   }
 
+  // Changing the group for a user
   if(message.callback_id=='6') {
     // Array for this function is array[answer, reconfigureUserId]
     let answer = array[0];
@@ -1151,6 +1152,57 @@ controller.on('interactive_message_callback', function(bot, message) {
             }
           });
           bot.replyInteractive(message, 'Perfect! ' + reconfigureUserEncoded + ' is now set to the ' + answer + ' group.');
+        });
+      });
+    }
+  }
+
+  // Adding a new user to the database and setting the group after init
+  if(message.callback_id=='7') {
+    // Array for this function is array[answer, newUserId]
+    let answer = array[0];
+    let newUserId = array[1];
+    let newUserEncoded = '<@' + newUserId + '>';
+    let teamId = bot.identifyTeam();
+
+    console.log('* CALLBACK: Begin Callback ID 7');
+    console.log('* CALLBACK VARIABLES' + '\n' +
+                'answer: ' + answer + '\n' +
+                'newUserId: ' + newUserId + '\n' +
+                'newUserEncoded: ' + newUserEncoded + '\n' +
+                'teamId: ' + teamId
+            );
+    if(answer == 'remove') {
+      // user will not be set to a Gemification group
+      console.log('* CALLBACK 7: user ' + newUserEncoded + ' will not be set to any Gemification groups.');
+      bot.replyInteractive(message, 'Ok, ' + newUserEncoded + ' will not be configured to a Gemification group.');
+    }else {
+      // user will be added to a database and assign a group
+      DBPool.getConnection(function(err, connection) {
+        if (err) throw err;
+        // user is assigning group to self
+        let query = 'INSERT INTO userGem(userId, teamId, groupId) VALUES (' +
+                      connection.escape(newUserId) + ', ' +
+                      '(SELECT id FROM teams WHERE slackTeamId = ' + connection.escape(teamId) + '), ' +
+                      '(SELECT id FROM teamConfiguration WHERE groupName = ' + connection.escape(answer) + ')' +
+                      ')';
+        connection.query(
+          query,
+          function(err, rows) {
+          if (err) throw err;
+          connection.release();
+          console.log('* CALLBACK 7: User ' + newUserId + ' on team ' + teamId + ' is set to the ' + answer + ' group.');
+          // alerts the user who has been moved to a new group
+          bot.startPrivateConversation({user: newUserId},
+            function(err, convo) {
+            if (err) {
+              console.log(err);
+            } else {
+              convo.say('This is a notice that you have been moved to the ' +
+                          answer + ' Gemification group. :grin:');
+            }
+          });
+          bot.replyInteractive(message, 'Perfect! ' + newUserEncoded + ' is now set to the ' + answer + ' group.');
         });
       });
     }
@@ -1777,51 +1829,54 @@ controller.hears('get reasons', 'direct_message', function(bot, message) {
     if(isConfigured) {
       checkIsAdminByMessage(bot, message, function(isAdmin) {
         if(isAdmin) {
-          getTeamGroups(bot, function(groups) {
-            for(let i=0; i<groups.length; i++) {
-              let groupName = groups[i].groupName;
+          // User who entered the message is an admin
+          let reasonsPersonTemp = String(message.text.match(/@[^\s]+/));
+          // Trimmed raw username who is getting the gem (ex. UW392NNSK)
+          let reasonsPersonId = reasonsPersonTemp.substring(1,
+            reasonsPersonTemp.length-1);
+          // Encoded username who is getting the gem (ex. <@UW392NNSK>, but will
+          // display as @john.doe in the Slack app)
+          let reasonsPerson = '<@' + reasonsPersonId + '>';
+          console.log('* get reasons variables:\n' +
+                      'reasonsPersonId: ' + reasonsPersonId + '\n' +
+                      'reasonsPerson: ' + reasonsPerson);
+          getAllSlackUsers(bot, function(allUsers) {
+            let isReasonPersonInvalid =
+              !(allUsers.some(function(member) {
+                return member.id == reasonsPersonId;
+              }));
+            console.log('isReasonPersonInvalid: ' + isReasonPersonInvalid);
+            if(isReasonPersonInvalid) {
+              bot.reply(message, 'The username you entered isn\'t valid.\n' +
+                        'Proper usage: `get reasons @slackusername`');
+            }else {
               // Getting the database pool
               DBPool.getConnection(function(err, connection) {
                 if (err) throw err;
-                let teamId = bot.identifyTeam(); // Gets the ID of the team
-                let query = 'SELECT userId, reason FROM gemTransactions ' +
-                                'INNER JOIN gemPeriod ' +
-                                'ON timestamp>resetTime ' +
-                                'INNER JOIN userGem ' +
-                                'ON gemReceiver=userGem.id ' +
-                                  'WHERE gemReceiver=(' +
-                                    'SELECT id FROM userGem ' +
-                                    'WHERE groupId=(SELECT id FROM teamConfiguration WHERE groupName=' + connection.escape(groupName) + ') ' +
-                                    'AND teamId=(SELECT id FROM teams WHERE slackTeamId=' + connection.escape(teamId) +') ' +
-                                    'ORDER BY currentGems DESC ' +
-                                    'LIMIT 1);';
+                let getReasonsQuery = 'SELECT reason FROM gemTransactions	WHERE' +
+                            ' gemReceiver=(SELECT id FROM userGem WHERE' +
+                            ' userId=' +
+                            connection.escape(reasonsPersonId) + ')';
                 connection.query(
-                  query,
+                  getReasonsQuery,
                   function(err, rows) {
                   if (err) throw err;
                   // Done with connection
                   connection.release();
-                  if(isEmptyObject(rows)) {
-                    bot.reply(message, 'The ' + groupName + ' leaderboard is empty. Try giving someone ' +
-                      'a :gem:!');
-                  } else{
-                    // Getting all the usernames
-                    getAllSlackUsers(bot, function(allSlackUsers) {
-                      let leaderName = convertIdToName(allSlackUsers, rows[0].userId);
-                      let reasons = 'The gem leader for ' + groupName + ' is ' + leaderName + '\n' +
-                                    'Below are their Gem reasons.\n';
-                      for(let i=0; i<rows.length; i++) {
-                        if(i == (rows.length-1)) {
-                          reasons += '>' + (i+1) + '.) ' +
-                            rows[i].reason;
-                        }else {
-                          reasons += '>' + (i+1) + '.) ' +
-                             rows[i].reason + '\n';
-                        }
-                      }
-                      bot.reply(message, reasons);
-                    });
+                  // Don't use connection here, it has been returned to the pool
+                  let reasonStr = 'Below are the Gem transaction reasons for ' +
+                                  reasonsPerson + '.\n';
+                  for(let i=0; i<rows.length; i++) {
+                    if(i == (rows.length-1)) {
+                      reasonStr += '>' + (i+1) + '.) ' +
+                        rows[i].reason;
+                    }else {
+                      reasonStr += '>' + (i+1) + '.) ' +
+                         rows[i].reason + '\n';
+                    }
                   }
+                  // The bot talks back to the user
+                  bot.reply(message, reasonStr);
                 });
               });
             }
@@ -1939,89 +1994,114 @@ controller.hears('reconfigure user', 'direct_message', function(bot, message) {
                       reconfigureUserTemp.length-1);
                     let reconfigureUser = '<@' + reconfigureUserId + '>';
                     let isValidUsername = findUserById(allSlackUsers, reconfigureUserId);
-                    isBot(bot, reconfigureUserId, function(isReconfiguredUserABot) {
-                      if (!isValidUsername) {
-                        // The username they entered wasn't valid
-                        convo.say('The username you entered isn\'t valid.');
-                        convo.repeat();
-                        convo.next();
-                      } else if(isReconfiguredUserABot) {
-                        convo.say('The user you entered is a bot and cannot' +
-                                    ' be configured for Gemification.');
-                        convo.repeat();
-                        convo.next();
-                      }else{
-                        // The username they entered is valid
-                        // Getting the groups for the team
-                        getTeamGroups(bot, function(groups) {
-                          let buttons = [];
-                          // assigning the groups to buttons
-                          for(let i=0; i<groups.length; i++) {
-                            let answer = [groups[i].groupName, reconfigureUserId];
-                            let answerJSON = JSON.stringify(answer);
-                            let button = {
-                              'name': groups[i].groupName,
-                              'text': groups[i].groupName,
-                              'value': answerJSON,
+                    if (!isValidUsername) {
+                      // The username they entered wasn't valid
+                      convo.say('The username you entered isn\'t valid.');
+                      convo.repeat();
+                      convo.next();
+                    }else{
+                      isBot(bot, reconfigureUserId, function(isReconfiguredUserABot) {
+                        if(isReconfiguredUserABot) {
+                          convo.say('The user you entered is a bot and cannot' +
+                                      ' be configured for Gemification.');
+                          convo.repeat();
+                          convo.next();
+                        }else{
+                          // The username they entered is valid
+                          // Getting the groups for the team
+                          getTeamGroups(bot, function(groups) {
+                            let buttons = [];
+                            // assigning the groups to buttons
+                            for(let i=0; i<groups.length; i++) {
+                              let answer = [groups[i].groupName, reconfigureUserId];
+                              let answerJSON = JSON.stringify(answer);
+                              let button = {
+                                'name': groups[i].groupName,
+                                'text': groups[i].groupName,
+                                'value': answerJSON,
+                                'type': 'button',
+                              };
+                              buttons.push(button);
+                            }
+                            // adding the remove button
+                            let ignoreAnswer = ['remove', reconfigureUserId];
+                            let ignoreAnswerJSON = JSON.stringify(ignoreAnswer);
+                            buttons.push({
+                              'name': 'remove',
+                              'text': 'Remove From Group',
+                              'value': ignoreAnswerJSON,
                               'type': 'button',
-                            };
-                            buttons.push(button);
-                          }
-                          // adding the remove button
-                          let ignoreAnswer = ['remove', reconfigureUserId];
-                          let ignoreAnswerJSON = JSON.stringify(ignoreAnswer);
-                          buttons.push({
-                            'name': 'remove',
-                            'text': 'Remove From Group',
-                            'value': ignoreAnswerJSON,
-                            'type': 'button',
-                          });
-                          // all team groups now have their own button
-
-                           DBPool.getConnection(function(err, connection) {
-                            // getting the current group of the user
-                            if (err) throw err;
-                            let query;
-                            // user is assigning group to self
-                            query = 'SELECT groupName FROM teamConfiguration' +
-                                    ' WHERE id=(SELECT groupId FROM userGem' +
-                                    ' WHERE userId=' +
-                                    connection.escape(reconfigureUserId) + ')';
-                            connection.query(
-                              query,
-                              function(err, rows) {
-                              if (err) throw err;
-                              connection.release();
-                              convo.next();
-                              let groupText = '';
-                              if(typeof rows[0] !== 'undefined') {
-                                // user was set to a group
-                                let currentGroup = rows[0].groupName;
-                                groupText = ' This person is currently set' +
-                                            ' to ' + currentGroup + ' group.';
+                            });
+                            // all team groups now have their own button
+                            isUserConfigured(bot, reconfigureUserId, function(isReconfiguringUserInDB) {
+                              if(isReconfiguringUserInDB) {
+                                // user is in database
+                                console.log('* reconfigure user: User ' + reconfigureUserId + ' is in database.');
+                                DBPool.getConnection(function(err, connection) {
+                                  // getting the current group of the user
+                                  if (err) throw err;
+                                  let query;
+                                  // user is assigning group to self
+                                  query = 'SELECT groupName FROM teamConfiguration' +
+                                          ' WHERE id=(SELECT groupId FROM userGem' +
+                                          ' WHERE userId=' +
+                                          connection.escape(reconfigureUserId) + ')';
+                                  connection.query(
+                                    query,
+                                    function(err, rows) {
+                                    if (err) throw err;
+                                    connection.release();
+                                    convo.next();
+                                    let groupText = '';
+                                    if(typeof rows[0] !== 'undefined') {
+                                      // user was set to a group
+                                      let currentGroup = rows[0].groupName;
+                                      groupText = ' This person is currently set' +
+                                                  ' to ' + currentGroup + ' group.';
+                                    }else {
+                                      // user wasn't set to a group
+                                      groupText = ' This person isn\'t currently' +
+                                                  ' assigned to a group.';
+                                    }
+                                    convo.ask({
+                                      text: 'Let\'s reconfigure ' + reconfigureUser +
+                                            '.' + groupText,
+                                      attachments: [
+                                        {
+                                          title: 'Which group would you like to set ' + reconfigureUser + ' to?',
+                                          // Assign users to group
+                                          callback_id: '6',
+                                          attachment_type: 'default',
+                                          actions: buttons,
+                                        },
+                                      ],
+                                    });
+                                  });
+                                });
                               }else {
-                                // user wasn't set to a group
-                                groupText = ' This person isn\'t currently' +
-                                            ' assigned to a group.';
+                                // user isn't in database, need to create a new row
+                                console.log('* reconfigure user: User ' + reconfigureUserId + ' is not in database.');
+                                convo.next();
+                                convo.ask({
+                                  text: 'Let\'s reconfigure ' + reconfigureUser +
+                                        '. This person isn\'t currently' +
+                                        ' assigned to a group.',
+                                  attachments: [
+                                    {
+                                      title: 'Which group would you like to set ' + reconfigureUser + ' to?',
+                                      // Assign users to group
+                                      callback_id: '7',
+                                      attachment_type: 'default',
+                                      actions: buttons,
+                                    },
+                                  ],
+                                });
                               }
-                              convo.ask({
-                                text: 'Let\'s reconfigure ' + reconfigureUser +
-                                      '.' + groupText,
-                                attachments: [
-                                  {
-                                    title: 'Which group would you like to set ' + reconfigureUser + ' to?',
-                                    // Assign users to group
-                                    callback_id: '6',
-                                    attachment_type: 'default',
-                                    actions: buttons,
-                                  },
-                                ],
-                              });
                             });
                           });
-                        });
-                      }
-                    });
+                        }
+                      });
+                    }
                  });
                },
              },
@@ -2073,8 +2153,8 @@ controller.hears('help', ['direct_mention', 'direct_message', 'ambient'],
                 ' time period.\n';
             adminCommands += 'In a direct message to Gemification, type `all gems`\n\n';
             adminCommands += '6) Show a list of gem statement reasons for' +
-                              ' the gem leader in each group.\n';
-            adminCommands += 'In a direct message to Gemification, type `get reasons`\n\n';
+                              ' a Gemification user.\n';
+            adminCommands += 'In a direct message to Gemification, type `get reasons @slackuser`\n\n';
             adminCommands += '7) List all of the Gemification user and which group they are assigned to.\n';
             adminCommands += 'In a direct message to Gemification, type `team configuration`\n\n';
             adminCommands += '8) Reconfigure a user to a different Gemification group.\n';
