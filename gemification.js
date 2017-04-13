@@ -2121,7 +2121,7 @@ controller.hears('reconfigure user', 'direct_message', function(bot, message) {
 
 // This function gives a bit of documentation help to the user
 // It listens for a direct message or direct me
-controller.hears('help', ['direct_mention', 'direct_message', 'ambient'],
+controller.hears('help', ['direct_message'],
   function(bot, message) {
     isUserConfigured(bot, message.user, function(isConfigured) {
       if(isConfigured) {
