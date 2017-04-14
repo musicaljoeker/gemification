@@ -1506,10 +1506,12 @@ controller.hears('clear gems', 'direct_message', function(bot, message) {
       // Getting the database pool
       checkIsAdminByMessage(bot, message, function(isAdmin) {
         if(isAdmin) {
+          // getting the team id
+          let teamId = bot.identifyTeam();
           DBPool.getConnection(function(err, connection) {
             if (err) throw err;
             connection.query(
-              'INSERT INTO gemPeriod VALUES();',
+              'CALL resetCurrentGems(' + connection.escape(teamId) + ');',
               function(err, rows) {
               if (err) throw err;
               // Done with connection
