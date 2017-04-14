@@ -2037,7 +2037,7 @@ controller.hears('reconfigure user', 'direct_message', function(bot, message) {
                               'type': 'button',
                             });
                             // all team groups now have their own button
-                            isUserConfigured(bot, reconfigureUserId, function(isReconfiguringUserInDB) {
+                            checkIfUserExists(reconfigureUserId, function(isReconfiguringUserInDB) {
                               if(isReconfiguringUserInDB) {
                                 // user is in database
                                 console.log('* reconfigure user: User ' + reconfigureUserId + ' is in database.');
