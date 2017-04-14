@@ -457,8 +457,9 @@ function configureGemificationTeam(bot, createdBy) {
                     'and back-end groups.');
           convo.say('Each group will have their own Gemification leaderboard.');
           convo.ask('One at a time, please enter a name for a new group. A group can be up ' +
-                    'to 20 characters long. Type `done` to finish and' +
-                      ' finalize the groups or `start over` to start over.', [
+                    'to 20 characters long. You may have up to 4 groups. Type' +
+                    ' `done` to finish and finalize the groups or `start ' +
+                    'over` to start over.', [
             {
               pattern: 'done',
               callback: function(response, convo) {
@@ -491,6 +492,10 @@ function configureGemificationTeam(bot, createdBy) {
                   // group was already added
                   console.log('info: User typed a group that was already added.');
                   convo.say(group + ' was already added as a group.');
+                }else if(groups.length == 4) {
+                  console.log('info: User reach the number of groups allowed limit.');
+                  convo.say('You may only have 4 groups set for Gemification.' +
+                            ' Type `done` to move to the next step.');
                 }else {
                   if(group.length > 20) {
                     console.log('info: User typed a group that was more than 20 characters.');
@@ -707,11 +712,12 @@ function finishTeamConfiguration(bot, message) {
       if (err) throw err;
       // Convo end point
       console.log('info: Configuration for team ' + teamId + ' is finished.');
-      bot.reply(message, 'Nice job! You have successfully configured your' +
-                          ' Slack team to work with Gemification. :tada:');
       bot.reply(message, 'The last step is to /invite me to the channel' +
                           ' you\'ll be using for Gemification. Without that,' +
                           ' I won\'t be able to do anything.');
+      bot.reply(message, 'For a full list of commands and explaination on how' +
+                          ' to use Gemification, type `help` in a direct' +
+                          ' message to Gemification.');
     });
   });
 }
