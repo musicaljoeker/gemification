@@ -628,6 +628,8 @@ function configurePerson(bot, createdBy, users, groups, userSelector) {
         // user is a bot and should be skipped
         console.log('info: User ' + users[userSelector].name +
                     ' is a bot and is being skipped.');
+        // Ending the conversation for the bot
+        convo.stop();
         if(userSelector != users.length-1) {
           // if user isn't the last user in the list
           configurePerson(bot, createdBy, users, groups, userSelector + 1);
@@ -1241,6 +1243,8 @@ controller.hears(':gem:', 'ambient', function(bot, message) {
           if(messageText.includes('for ')) {
             reason = messageText.substr(messageText.indexOf('for ') + 4);
           }
+          // Getting the team ID
+          let teamId = bot.identifyTeam();
 
           // Logging
           console.log('***************VARIABLES***************' + '\n' +
@@ -1249,7 +1253,8 @@ controller.hears(':gem:', 'ambient', function(bot, message) {
                       'Gem Giver Encoded: ' + gemGiverEncoded + '\n' +
                       'Gem Receiver ID: ' + gemReceiverId + '\n' +
                       'Gem Receiver Encoded: ' + gemReceiver + '\n' +
-                      'Reason: ' + reason
+                      'Reason: ' + reason + '\n' +
+                      'Team ID: ' + teamId
                   );
 
 
@@ -1362,7 +1367,6 @@ controller.hears(':gem:', 'ambient', function(bot, message) {
               // Truncating the reason statement to 250 characters to fit in the
               // database
               reason = reason.substring(0, 250);
-              let teamId = bot.identifyTeam(); // Getting the team ID
               // Getting the database pool
               DBPool.getConnection(function(err, connection) {
                 if (err) throw err;
@@ -2121,7 +2125,7 @@ controller.hears('reconfigure user', 'direct_message', function(bot, message) {
 
 // This function gives a bit of documentation help to the user
 // It listens for a direct message or direct me
-controller.hears('help', ['direct_message'],
+controller.hears('help', 'direct_message',
   function(bot, message) {
     isUserConfigured(bot, message.user, function(isConfigured) {
       if(isConfigured) {
