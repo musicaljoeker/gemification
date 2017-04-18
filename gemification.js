@@ -280,10 +280,13 @@ function listAdmins(bot, message) {
   checkIsAdminByMessage(bot, message, function(isAdmin) {
     if(isAdmin) {
       // The user who typed the message is an admin
+      let teamId = bot.identifyTeam();
       DBPool.getConnection(function(err, connection) {
         if (err) throw err;
         connection.query(
-          'SELECT userId FROM userGem WHERE isAdmin=\'1\';',
+          'SELECT userId FROM userGem WHERE isAdmin=\'1\' AND teamId=(SELECT' +
+          ' id FROM teams WHERE slackTeamId=' + connection.escape(teamId) +
+          ');',
           function(err, rows) {
           connection.release();
           if (err) throw err;
