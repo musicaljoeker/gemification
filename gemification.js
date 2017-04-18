@@ -316,11 +316,14 @@ function listAdmins(bot, message) {
  * @param {string} removeAdminId The ID of the admin you are trying to remove.
  * @param {function} callback The callback function.
  */
-function checkIsLastAdmin(removeAdminId, callback) {
+function checkIsLastAdmin(bot, removeAdminId, callback) {
+  let teamId = bot.identifyTeam();
   DBPool.getConnection(function(err, connection) {
     if (err) throw err;
     connection.query(
-      'SELECT COUNT(userId) AS admin_count FROM userGem WHERE isAdmin=\'1\';',
+      'SELECT COUNT(userId) AS admin_count FROM userGem WHERE isAdmin=\'1\'' +
+      ' AND teamId=(SELECT id FROM teams WHERE slackTeamId=' +
+      connection.escape(teamId) + ');',
       function(err, rows) {
       connection.release();
       if (err) throw err;
@@ -1728,7 +1731,7 @@ controller.hears('remove admin', 'direct_message', function(bot, message) {
                     let removeAdminId =
                       removeAdminTemp.substring(1, removeAdminTemp.length-1);
                     let removeAdmin = '<@' + removeAdminId + '>';
-                    checkIsLastAdmin(removeAdminId, function(islastAdmin) {
+                    checkIsLastAdmin(bot, removeAdminId, function(islastAdmin) {
                       let isValidUsername =
                         findUserById(allSlackUsers, removeAdminId);
                       if (!isValidUsername) {
