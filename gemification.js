@@ -2244,7 +2244,7 @@ controller.hears('all gems', 'direct_message', function(bot, message) {
                   // Getting all the usernames
                   getAllSlackUsers(bot, function(allSlackUsers) {
                     if(isEmptyObject(rows)) {
-                      bot.reply(message, 'Nobody has received any gems yet. :sob: Try' +
+                      bot.reply(message, 'Nobody has received any gems yet in the ' + groupName + ' group. :sob: Try' +
                                           ' giving someone a :gem:!');
                     } else{
                       // Parsing the leaderboard, looping thru everybody returned in the
