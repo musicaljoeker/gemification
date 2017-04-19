@@ -1121,7 +1121,7 @@ controller.on('interactive_message_callback', function(bot, message) {
         if (err) throw err;
         let query;
         // user is assigning group to self
-        query = 'UPDATE userGem SET groupId=null WHERE userId=' + connection.escape(reconfigureUserId);
+        query = 'UPDATE userGem SET groupId=null WHERE userId=' + connection.escape(reconfigureUserId) + ' AND teamId=(SELECT id FROM teams WHERE slackTeamId=' + connection.escape(teamId) + ')';
         connection.query(
           query,
           function(err, rows) {
@@ -1148,7 +1148,8 @@ controller.on('interactive_message_callback', function(bot, message) {
         let query;
         // user is assigning group to self
         query = 'UPDATE userGem SET groupId=(SELECT id FROM teamConfiguration WHERE groupName = ' +
-                  connection.escape(answer) + ') WHERE userId=' + connection.escape(reconfigureUserId);
+                  connection.escape(answer) + ') WHERE userId=' + connection.escape(reconfigureUserId) +
+                  ' AND teamId=(SELECT id FROM teams WHERE slackTeamId=' + connection.escape(teamId) + ')';
         connection.query(
           query,
           function(err, rows) {
@@ -2059,11 +2060,15 @@ controller.hears('reconfigure user', 'direct_message', function(bot, message) {
                                   // getting the current group of the user
                                   if (err) throw err;
                                   let query;
+                                  let teamId = bot.identifyTeam();
                                   // user is assigning group to self
                                   query = 'SELECT groupName FROM teamConfiguration' +
                                           ' WHERE id=(SELECT groupId FROM userGem' +
                                           ' WHERE userId=' +
-                                          connection.escape(reconfigureUserId) + ')';
+                                          connection.escape(reconfigureUserId) +
+                                          ' AND teamId=(SELECT id FROM teams' +
+                                          ' WHERE slackTeamId=' +
+                                          connection.escape(teamId) + '))';
                                   connection.query(
                                     query,
                                     function(err, rows) {
