@@ -1885,13 +1885,17 @@ controller.hears('get reasons', 'direct_message', function(bot, message) {
                   // Don't use connection here, it has been returned to the pool
                   let reasonStr = 'Below are the Gem transaction reasons for ' +
                                   reasonsPerson + '.\n';
-                  for(let i=0; i<rows.length; i++) {
-                    if(i == (rows.length-1)) {
-                      reasonStr += '>' + (i+1) + '.) ' +
-                        rows[i].reason;
-                    }else {
-                      reasonStr += '>' + (i+1) + '.) ' +
-                         rows[i].reason + '\n';
+                  if(rows.length==0) {
+                    reasonStr += reasonsPerson + ' doesn\'t have any gems.';
+                  }else {
+                    for(let i=0; i<rows.length; i++) {
+                      if(i == (rows.length-1)) {
+                        reasonStr += '>' + (i+1) + '.) ' +
+                          rows[i].reason;
+                      }else {
+                        reasonStr += '>' + (i+1) + '.) ' +
+                           rows[i].reason + '\n';
+                      }
                     }
                   }
                   // The bot talks back to the user
