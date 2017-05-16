@@ -34,6 +34,8 @@ redisClient.on('error', function(err) {
   console.log('Error in Redis Client: ' + err);
 });
 
+// If the user who starts Gemification doesn't have all the proper information,
+// then error.
 if (!process.env.clientId ||
     !process.env.clientSecret ||
     !process.env.port ||
@@ -43,17 +45,22 @@ if (!process.env.clientId ||
   process.exit(1);
 }
 
-let controller = Botkit.slackbot({
+// Setting up the Slack controller
+let controllerOptions = {
   json_file_store: './db_slackbutton_bot/',
   interactive_replies: true,
-}).configureSlackApp(
-  {
-    clientId: process.env.clientId,
-    clientSecret: process.env.clientSecret,
-    redirectUri: process.env.redirectUri,
-    scopes: ['bot'],
-  }
-);
+  retry: Infinity,
+};
+let controller = Botkit.slackbot(controllerOptions);
+
+// Configuring the controller for the Slack app
+let slackAppOptions = {
+  clientId: process.env.clientId,
+  clientSecret: process.env.clientSecret,
+  redirectUri: process.env.redirectUri,
+  scopes: ['bot'],
+};
+controller.configureSlackApp(slackAppOptions);
 
 // Instantiating the Gemification database pool
 let DBPool = mysql.createPool({
@@ -61,6 +68,69 @@ let DBPool = mysql.createPool({
   user: DBCredentials.USERNAME,
   password: DBCredentials.PASSWORD,
   database: DBCredentials.DATABASE,
+});
+
+// Setting up a webserver so that users can install Gemification to their Slack
+// team. http://gemification.mio.uwosh.edu/login
+controller.setupWebserver(process.env.port, function(err, webserver) {
+  controller.createWebhookEndpoints(controller.webserver);
+  controller.createHomepageEndpoint(controller.webserver);
+  controller.createOauthEndpoints(controller.webserver,
+    function(err, req, res) {
+    if (err) {
+      res.status(500).send('ERROR: ' + err);
+    } else {
+      res.send('You have successfully connected Gemification to your team!');
+    }
+  });
+});
+
+let _bots = {};
+/**
+ * just a simple way to make sure we don't connect to the RTM twice for the same
+ * team messages back a parsed list of admins.
+ * @param {string} bot The bot.
+ */
+function trackBot(bot) {
+  _bots[bot.config.token] = bot;
+}
+
+// Handle events related to the websocket connection to Slack
+controller.on('rtm_open', function(bot) {
+  console.log('** The RTM api just connected!');
+});
+
+// controller.on('rtm_close', function(bot) {
+//   console.log('** The RTM api just closed... attempting to reopen ' +
+//     'RTM connection');
+//   // you may want to attempt to re-open
+//   if (_bots[bot.config.token]) {
+//     // already online! do nothing.
+//   } else {
+//     bot.startRTM(function(err) {
+//       if (!err) {
+//         trackBot(bot);
+//       }
+//     });
+//   }
+// });
+
+controller.storage.teams.all(function(err, teams) {
+  if (err) {
+    throw new Error(err);
+  }
+  // connect all teams with bots up to slack!
+  for (let t in teams) {
+    if (teams[t].bot) {
+      controller.spawn(teams[t]).startRTM(function(err, bot) {
+        if (err) {
+          console.log('Error connecting bot to Slack:', err);
+        } else {
+          trackBot(bot);
+        }
+      });
+    }
+  }
 });
 
 /* ~~~~~~~~~~~~~~~~~~~~Begin helper functions~~~~~~~~~~~~~~~~~~~~ */
@@ -729,29 +799,6 @@ function finishTeamConfiguration(bot, message) {
 }
 /* ~~~~~~~~~~~~~~~~~~~~End helper functions~~~~~~~~~~~~~~~~~~~~ */
 
-controller.setupWebserver(process.env.port, function(err, webserver) {
-  controller.createWebhookEndpoints(controller.webserver);
-  controller.createHomepageEndpoint(controller.webserver);
-  controller.createOauthEndpoints(controller.webserver,
-    function(err, req, res) {
-    if (err) {
-      res.status(500).send('ERROR: ' + err);
-    } else {
-      res.send('You have successfully connected Gemification to your team!');
-    }
-  });
-});
-
-let _bots = {};
-/**
- * just a simple way to make sure we don't connect to the RTM twice for the same
- * team messages back a parsed list of admins.
- * @param {string} bot The bot.
- */
-function trackBot(bot) {
-  _bots[bot.config.token] = bot;
-}
-
 controller.on('create_bot', function(bot, config) {
   if (_bots[bot.config.token]) {
     // already online! do nothing.
@@ -793,44 +840,6 @@ controller.on('create_bot', function(bot, config) {
         }
       });
     });
-  }
-});
-
-// Handle events related to the websocket connection to Slack
-controller.on('rtm_open', function(bot) {
-  console.log('** The RTM api just connected!');
-});
-
-controller.on('rtm_close', function(bot) {
-  console.log('** The RTM api just closed... attempting to reopen ' +
-    'RTM connection');
-  // you may want to attempt to re-open
-  if (_bots[bot.config.token]) {
-    // already online! do nothing.
-  } else {
-    bot.startRTM(function(err) {
-      if (!err) {
-        trackBot(bot);
-      }
-    });
-  }
-});
-
-controller.storage.teams.all(function(err, teams) {
-  if (err) {
-    throw new Error(err);
-  }
-  // connect all teams with bots up to slack!
-  for (let t in teams) {
-    if (teams[t].bot) {
-      controller.spawn(teams[t]).startRTM(function(err, bot) {
-        if (err) {
-          console.log('Error connecting bot to Slack:', err);
-        } else {
-          trackBot(bot);
-        }
-      });
-    }
   }
 });
 
