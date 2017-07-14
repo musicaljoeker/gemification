@@ -33,6 +33,8 @@ let redisClient = redis.createClient();
 redisClient.on('error', function(err) {
   console.log('Error in Redis Client: ' + err);
 });
+// including the dateformat library
+let dateFormat = require('dateformat');
 
 // If the user who starts Gemification doesn't have all the proper information,
 // then error.
@@ -99,21 +101,6 @@ function trackBot(bot) {
 controller.on('rtm_open', function(bot) {
   console.log('** The RTM api just connected!');
 });
-
-// controller.on('rtm_close', function(bot) {
-//   console.log('** The RTM api just closed... attempting to reopen ' +
-//     'RTM connection');
-//   // you may want to attempt to re-open
-//   if (_bots[bot.config.token]) {
-//     // already online! do nothing.
-//   } else {
-//     bot.startRTM(function(err) {
-//       if (!err) {
-//         trackBot(bot);
-//       }
-//     });
-//   }
-// });
 
 controller.storage.teams.all(function(err, teams) {
   if (err) {
@@ -1881,7 +1868,8 @@ controller.hears('get reasons', 'direct_message', function(bot, message) {
               // Getting the database pool
               DBPool.getConnection(function(err, connection) {
                 if (err) throw err;
-                let getReasonsQuery = 'SELECT reason FROM gemTransactions	WHERE' +
+                let getReasonsQuery = 'SELECT reason, timestamp FROM' +
+                            ' gemTransactions	WHERE' +
                             ' gemReceiver=(SELECT id FROM userGem WHERE' +
                             ' userId=' +
                             connection.escape(reasonsPersonId) + ')';
@@ -1897,13 +1885,19 @@ controller.hears('get reasons', 'direct_message', function(bot, message) {
                   if(rows.length==0) {
                     reasonStr += reasonsPerson + ' doesn\'t have any gems.';
                   }else {
+                    rows.reverse(); // reversing so that the most recent gem appears on top
                     for(let i=0; i<rows.length; i++) {
+                      let timestamp = new Date(rows[i].timestamp);
                       if(i == (rows.length-1)) {
                         reasonStr += '>' + (i+1) + '.) ' +
-                          rows[i].reason;
+                          rows[i].reason + '\n>\t-given on '
+                          + dateFormat(timestamp,
+                              "dddd, mmmm dS, yyyy, h:MM:ss TT");
                       }else {
                         reasonStr += '>' + (i+1) + '.) ' +
-                           rows[i].reason + '\n';
+                           rows[i].reason + '\n>\t-given on '
+                           + dateFormat(timestamp,
+                              "dddd, mmmm dS, yyyy, h:MM:ss TT") + '\n';
                       }
                     }
                   }
