@@ -1872,7 +1872,13 @@ controller.hears('get reasons', 'direct_message', function(bot, message) {
                             ' gemTransactions	WHERE' +
                             ' gemReceiver=(SELECT id FROM userGem WHERE' +
                             ' userId=' +
-                            connection.escape(reasonsPersonId) + ')';
+                            connection.escape(reasonsPersonId) + ') ' +
+                            'AND timestamp > (' +
+                            'SELECT resetTime' +
+                            ' FROM gemPeriod' +
+                            ' ORDER BY resetTime DESC' +
+                            ' LIMIT 1' +
+                            ' OFFSET 1)';
                 connection.query(
                   getReasonsQuery,
                   function(err, rows) {
@@ -1881,7 +1887,7 @@ controller.hears('get reasons', 'direct_message', function(bot, message) {
                   connection.release();
                   // Don't use connection here, it has been returned to the pool
                   let reasonStr = 'Below are the Gem transaction reasons for ' +
-                                  reasonsPerson + '.\n';
+                                  reasonsPerson + ' from the last two gem periods.\n';
                   if(rows.length==0) {
                     reasonStr += reasonsPerson + ' doesn\'t have any gems.';
                   }else {
