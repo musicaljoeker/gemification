@@ -1,6 +1,6 @@
 # Gemification
 
-A Slack bot created for UW-Oshkosh central IT as a buddy reward system. Give gems to coworkers for to show workplace appreciation!
+A Slack bot built on [BotKit](https://github.com/howdyai/botkit) created for UW-Oshkosh central IT as a buddy reward system. Give gems to coworkers for to show workplace appreciation!
 
 ## Permissions
 
