@@ -1255,6 +1255,9 @@ controller.hears(':gem:', 'ambient', function(bot, message) {
           if(messageText.includes('For ')) {
             reason = messageText.substr(messageText.indexOf('For ') + 4);
           }
+          if(messageText.includes('FOR ')) {
+            reason = messageText.substr(messageText.indexOf('FOR ') + 4);
+          }
           // Getting the team ID
           let teamId = bot.identifyTeam();
 
